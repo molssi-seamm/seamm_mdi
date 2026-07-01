@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seamm_mdi"
+version = "2026.6.30"
+description = "A reusable MDI driver facility for SEAMM"
+readme = "README.md"
+authors = [
+    { name = "Paul Saxe", email = "psaxe@molssi.org" },
+]
+license = { text = "BSD-3-Clause" }
+classifiers = [
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pymdi",
+    "numpy",
+    "seamm-util",
+]
+
+[project.urls]
+"Source" = "https://github.com/molssi-seamm/seamm_mdi/"
+
+[project.optional-dependencies]
+test = ["pytest>=6.1.2"]
+
+[tool.setuptools]
+packages = ["seamm_mdi"]
+zip-safe = false

@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+setup.cfg
+seamm_mdi/__init__.py
+seamm_mdi/mdi_engine.py
+seamm_mdi.egg-info/PKG-INFO
+seamm_mdi.egg-info/SOURCES.txt
+seamm_mdi.egg-info/dependency_links.txt
+seamm_mdi.egg-info/not-zip-safe
+seamm_mdi.egg-info/requires.txt
+seamm_mdi.egg-info/top_level.txt
+tests/test_mdi_engine.py
