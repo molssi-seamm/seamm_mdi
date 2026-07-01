@@ -10,3 +10,4 @@ seamm_mdi.egg-info/not-zip-safe
 seamm_mdi.egg-info/requires.txt
 seamm_mdi.egg-info/top_level.txt
 tests/test_mdi_engine.py
+tests/test_mopac_integration.py

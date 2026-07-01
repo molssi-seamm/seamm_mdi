@@ -75,6 +75,16 @@ def test_multiple_evaluations_reuse_one_engine(engine):
     for scale in (1.0, 2.0, 3.0):
         engine.set_coordinates(np.eye(3) * scale, units="bohr")
         assert engine.energy() == pytest.approx(0.5 * 3.0 * scale)
+    assert engine.n_energy_calls == 3
+
+
+def test_call_counters(engine):
+    engine.set_coordinates(np.eye(3), units="bohr")
+    engine.energy()
+    engine.energy()
+    engine.forces()
+    assert engine.n_energy_calls == 2
+    assert engine.n_force_calls == 1
 
 
 def test_wrong_atom_count_raises(engine):
