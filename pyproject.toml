@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "versioningit~=2.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "seamm_mdi"
-version = "2026.6.30"
 description = "A reusable MDI driver facility for SEAMM"
+dynamic = ["version"]
 readme = "README.md"
 authors = [
     { name = "Paul Saxe", email = "psaxe@molssi.org" },
@@ -24,10 +24,35 @@ dependencies = [
 
 [project.urls]
 "Source" = "https://github.com/molssi-seamm/seamm_mdi/"
+"Documentation" = "https://molssi-seamm.github.io/seamm_mdi/"
 
 [project.optional-dependencies]
 test = ["pytest>=6.1.2"]
 
 [tool.setuptools]
-packages = ["seamm_mdi"]
 zip-safe = false
+
+[tool.setuptools.packages.find]
+namespaces = false
+where = ["."]
+
+[tool.setuptools.package-data]
+seamm_mdi = [
+    "py.typed",
+]
+
+[tool.versioningit]
+default-version = "1+unknown"
+
+[tool.versioningit.format]
+distance = "{base_version}+{distance}.{vcs}{rev}"
+dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+
+[tool.versioningit.vcs]
+method = "git"
+match = ["*"]
+default-tag = "1.0.0"
+
+[tool.versioningit.write]
+file = "seamm_mdi/_version.py"

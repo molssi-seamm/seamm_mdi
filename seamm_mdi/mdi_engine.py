@@ -88,6 +88,10 @@ class MDIEngine:
         self._process = None
         self._started = False
 
+        # How many times the engine has been asked to evaluate the structure.
+        self.n_energy_calls = 0
+        self.n_force_calls = 0
+
     # ----------------------------------------------------------------- #
     # Lifecycle
     # ----------------------------------------------------------------- #
@@ -204,6 +208,7 @@ class MDIEngine:
 
     def energy(self, units=_MDI_ENERGY):
         """Return the total energy in ``units`` (default MDI-native hartree)."""
+        self.n_energy_calls += 1
         mdi.MDI_Send_Command("<ENERGY", self._comm)
         raw = mdi.MDI_Recv(1, mdi.MDI_DOUBLE, self._comm)
         value = float(np.asarray(raw).flat[0])
@@ -213,6 +218,7 @@ class MDIEngine:
 
     def forces(self, units=_MDI_FORCE):
         """Return the forces as an (n, 3) array in ``units`` (default hartree/bohr)."""
+        self.n_force_calls += 1
         mdi.MDI_Send_Command("<FORCES", self._comm)
         raw = mdi.MDI_Recv(3 * self._natoms, mdi.MDI_DOUBLE, self._comm)
         forces = np.asarray(raw, dtype=float).reshape(-1, 3)

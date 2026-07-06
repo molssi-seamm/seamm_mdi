@@ -1,6 +1,0 @@
-pymdi
-numpy
-seamm-util
-
-[test]
-pytest>=6.1.2
