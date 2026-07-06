@@ -1,1 +1,2 @@
 seamm_mdi
+tests

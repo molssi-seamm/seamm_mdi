@@ -1,19 +1,22 @@
 Metadata-Version: 2.4
 Name: seamm_mdi
-Version: 2026.6.30
+Version: 1.0.0+2.g05ec4f5.dirty
 Summary: A reusable MDI driver facility for SEAMM
 Author-email: Paul Saxe <psaxe@molssi.org>
 License: BSD-3-Clause
 Project-URL: Source, https://github.com/molssi-seamm/seamm_mdi/
+Project-URL: Documentation, https://molssi-seamm.github.io/seamm_mdi/
 Classifier: License :: OSI Approved :: BSD License
 Classifier: Programming Language :: Python :: 3
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
+License-File: LICENSE.txt
 Requires-Dist: pymdi
 Requires-Dist: numpy
 Requires-Dist: seamm-util
 Provides-Extra: test
 Requires-Dist: pytest>=6.1.2; extra == "test"
+Dynamic: license-file
 
 # seamm_mdi
 
