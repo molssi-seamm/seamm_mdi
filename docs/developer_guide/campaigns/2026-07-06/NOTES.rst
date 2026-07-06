@@ -107,6 +107,20 @@ Cross-package changes
     INFO, cluttering driver output. Demoted to DEBUG so normal runs are quiet;
     the driver reports what it needs (which model chemistry, how many calls).
 
+``orca_step``
+    Brought up as the campaign's **high-level reference method** — the accurate
+    level the DES370K-style training set (energies and forces for the dimers and
+    clusters the Dimer Builder generates) is computed at. The full ORCA DFT
+    functional catalogue (117 functionals) now lives in ``metadata.py`` with each
+    functional's category, analytic-vs-numeric gradient availability, and
+    citations; the GUI presents a Method → functional-type → functional cascade;
+    the gradient keyword is chosen automatically (``EnGrad``, or ``NumGrad`` for
+    ``DLPNO-CCSD(T)`` and the non-self-consistent ``wB97M(2)``/``wB97X-2``);
+    gradients, charges, and the other array/vector results are now storable as
+    configuration properties; and ORCA runs in parallel by default
+    (``[orca-step]`` ``ncores``/``memory``). This is the plug-in the future
+    ``orca_mdi.py`` wrapper will drive as a persistent engine.
+
 Status and remaining work
 ==========================
 
@@ -118,6 +132,10 @@ Remaining:
 
 * Remote / executor launching of the engine (the queue + dial-back path).
 * An ``orca_mdi.py`` wrapper (ORCA has no native MDI, but has a Python API).
+  The ``orca_step`` plug-in itself is now reference-capable (functional
+  catalogue, analytic/``NumGrad`` gradients, results→database, parallel), so it
+  already produces the high-level reference data through a normal flowchart; the
+  wrapper is the persistent-engine path for many cheap evaluations.
 * Retrofit ``energy_scan`` and ``reaction_path`` (and eventually the LAMMPS
   QM path) onto the facility.
 * Demote the ``tblite_mdi.py`` / ``mace_mdi.py`` engine logging as was done for
