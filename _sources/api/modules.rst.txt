@@ -1,0 +1,7 @@
+seamm_mdi
+=========
+
+.. toctree::
+   :maxdepth: 4
+
+   seamm_mdi
