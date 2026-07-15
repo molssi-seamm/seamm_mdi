@@ -126,16 +126,19 @@ Status and remaining work
 
 Done and validated (against real MOPAC, across conda environments):
 ``MDIEngine`` local mode, unit conversions, and the Dimer Builder energy-contact
-search.
+search. An ``orca_mdi.py`` engine (in ``orca_step``) was added and validated the
+same way against real ORCA: it runs the ``orca`` binary per geometry in a
+persistent work dir (reusing ``orca.gbw`` for the SCF guess), and ``ORCAStep``
+advertises ``mdi_capable`` for analytic-gradient methods with the real keyword +
+basis in ``mdi_method_arg``/``mdi_basis_arg``. HF/def2-SVP water through
+``MDIEngine`` matched a direct ORCA run (-75.96098399 Ha).
 
 Remaining:
 
 * Remote / executor launching of the engine (the queue + dial-back path).
-* An ``orca_mdi.py`` wrapper (ORCA has no native MDI, but has a Python API).
-  The ``orca_step`` plug-in itself is now reference-capable (functional
-  catalogue, analytic/``NumGrad`` gradients, results→database, parallel), so it
-  already produces the high-level reference data through a normal flowchart; the
-  wrapper is the persistent-engine path for many cheap evaluations.
+* Wire ORCA into the Dimer Builder: ``_open_energy_engine`` must pass the model
+  chemistry's ``mdi_basis_arg`` as well as its method (MOPAC/xTB need only a
+  method; ORCA also needs a basis). The engine itself is done and tested.
 * Retrofit ``energy_scan`` and ``reaction_path`` (and eventually the LAMMPS
   QM path) onto the facility.
 * Demote the ``tblite_mdi.py`` / ``mace_mdi.py`` engine logging as was done for

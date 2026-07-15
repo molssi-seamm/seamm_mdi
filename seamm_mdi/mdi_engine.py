@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 _MDI_LENGTH = "bohr"
 _MDI_ENERGY = "hartree"
 _MDI_FORCE = "hartree/bohr"
+_MDI_HESSIAN = "hartree/bohr**2"
 
 
 def _free_port(hostname="localhost"):
@@ -91,6 +92,7 @@ class MDIEngine:
         # How many times the engine has been asked to evaluate the structure.
         self.n_energy_calls = 0
         self.n_force_calls = 0
+        self.n_hessian_calls = 0
 
     # ----------------------------------------------------------------- #
     # Lifecycle
@@ -225,3 +227,34 @@ class MDIEngine:
         if units != _MDI_FORCE:
             forces = Q_(forces, _MDI_FORCE).m_as(units)
         return forces
+
+    def supports(self, command, node="@DEFAULT"):
+        """Whether the engine supports an MDI ``command`` (e.g. ``"<HESSIAN"``).
+
+        Lets a driver discover an optional capability at runtime rather than
+        being told in advance -- e.g. use the analytic Hessian if the engine
+        offers one, else finite-difference the forces."""
+        try:
+            return bool(mdi.MDI_Check_Command_Exists(node, command, self._comm))
+        except Exception as e:  # pragma: no cover - conservative fallback
+            logger.debug(f"MDI_Check_Command_Exists({command}) failed: {e}")
+            return False
+
+    def hessian(self, units=_MDI_HESSIAN):
+        """Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``
+        (default hartree/bohr^2), via the engine's custom ``<HESSIAN`` command.
+
+        Raises ``NotImplementedError`` if the engine does not support ``<HESSIAN``
+        -- the caller should then finite-difference :meth:`forces` instead."""
+        if not self.supports("<HESSIAN"):
+            raise NotImplementedError(
+                "This MDI engine does not provide an analytic Hessian (<HESSIAN)."
+            )
+        self.n_hessian_calls += 1
+        n = 3 * self._natoms
+        mdi.MDI_Send_Command("<HESSIAN", self._comm)
+        raw = mdi.MDI_Recv(n * n, mdi.MDI_DOUBLE, self._comm)
+        hessian = np.asarray(raw, dtype=float).reshape(n, n)
+        if units != _MDI_HESSIAN:
+            hessian = Q_(hessian, _MDI_HESSIAN).m_as(units)
+        return hessian
