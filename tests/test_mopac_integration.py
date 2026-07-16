@@ -77,6 +77,14 @@ def test_real_mopac_water():
         e_h = engine.energy(units="hartree")
         forces = engine.forces(units="kcal/mol/Å")
 
+        # MOPAC does not provide an analytic Hessian over MDI: introspection
+        # reports it, and hessian() falls through to NotImplementedError (the
+        # signal for a driver to finite-difference the forces instead).
+        assert engine.supports("<FORCES") is True
+        assert engine.supports("<HESSIAN") is False
+        with pytest.raises(NotImplementedError):
+            engine.hessian()
+
     # PM7 heat of formation of water is about -57.8 kcal/mol.
     assert -70.0 < e_kcal < -45.0
     # Energy-unit conversion is self-consistent.
