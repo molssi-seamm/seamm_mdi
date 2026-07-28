@@ -2,6 +2,16 @@
 History
 =======
 
+2026.7.27 -- Bugfix: honor an environment-variable prefix on the engine command
+    * An engine launch command may lead with ``VAR=value`` assignments (e.g.
+      ``OMP_NUM_THREADS=1``) to pin the engine's threads. Those are a shell
+      convention, and ``MDIEngine`` launches the engine without a shell, so the
+      first assignment was being taken as the program name -- the engine failed
+      to start with ``FileNotFoundError: 'OMP_NUM_THREADS=1'`` (seen driving the
+      xTB engine from the Dimer Builder). ``MDIEngine`` now applies any such
+      leading assignments to the engine's environment instead, so the engine
+      launches correctly and runs with the requested thread count.
+
 2026.7.15 -- Optional analytic Hessian over MDI
     * ``MDIEngine`` gained ``supports(command)`` (runtime capability discovery via
       MDI command introspection) and ``hessian()``, which returns the analytic

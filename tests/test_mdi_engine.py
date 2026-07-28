@@ -2,6 +2,7 @@
 
 """Tests for the seamm_mdi MDIEngine driver, using a mock MDI engine."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import numpy as np
 import pytest
 
 from seamm_mdi import MDIEngine
+from seamm_mdi.mdi_engine import _split_env_prefix
 from seamm_util import Q_
 
 MOCK = str(Path(__file__).resolve().parent / "mock_engine.py")
@@ -90,3 +92,36 @@ def test_call_counters(engine):
 def test_wrong_atom_count_raises(engine):
     with pytest.raises(ValueError):
         engine.set_coordinates(np.zeros((4, 3)), units="bohr")
+
+
+def test_split_env_prefix_no_prefix():
+    argv = ["python", "engine.py", "-mdi", "OPT=x=y"]
+    out, env = _split_env_prefix(argv)
+    # Only a *leading* run of VAR=value tokens is a prefix; the program's own
+    # arguments (even if they contain '=') are left alone, and env is None so
+    # Popen inherits the parent environment unchanged.
+    assert out == argv
+    assert env is None
+
+
+def test_split_env_prefix_pulls_leading_assignments():
+    argv = ["OMP_NUM_THREADS=1", "MKL_NUM_THREADS=1", "python", "engine.py"]
+    out, env = _split_env_prefix(argv)
+    assert out == ["python", "engine.py"]
+    assert env["OMP_NUM_THREADS"] == "1"
+    assert env["MKL_NUM_THREADS"] == "1"
+    # The overlay is a copy of the real environment plus the assignments.
+    assert env["PATH"] == os.environ["PATH"]
+
+
+def test_env_prefixed_argv_launches(monkeypatch):
+    # An engine argv carrying a leading OMP_NUM_THREADS=1 prefix (the xTB
+    # convention, meant for a shell) must still launch under the shell-less
+    # Popen: MDIEngine routes the prefix into env= rather than exec'ing it.
+    def build_argv(hostname, port):
+        argv = _build_argv(hostname, port)
+        return ["OMP_NUM_THREADS=1", "MKL_NUM_THREADS=1", *argv]
+
+    with MDIEngine(build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        eng.set_coordinates(np.eye(3), units="bohr")
+        assert eng.energy() == pytest.approx(0.5 * 3.0)
