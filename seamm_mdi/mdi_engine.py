@@ -13,6 +13,8 @@ Local mode only for now: the engine is launched as a subprocess on the same host
 """
 
 import logging
+import os
+import re
 import signal
 import socket
 import subprocess
@@ -29,6 +31,35 @@ _MDI_LENGTH = "bohr"
 _MDI_ENERGY = "hartree"
 _MDI_FORCE = "hartree/bohr"
 _MDI_HESSIAN = "hartree/bohr**2"
+
+# A leading ``VAR=value`` token in an argv (env-assignment prefix).
+_ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def _split_env_prefix(argv):
+    """Split leading ``VAR=value`` env-assignment tokens off an ``argv``.
+
+    Some engines' ``get_mdi_engine_command`` return an argv carrying a leading
+    ``OMP_NUM_THREADS=1``-style prefix, meant to be run through a shell (e.g.
+    ``shlex.join``'d into a launch script). ``subprocess.Popen`` with no shell
+    would treat ``VAR=value`` as the program name and fail, so pull those tokens
+    into an environment overlay instead.
+
+    Returns ``(argv, env)`` where ``env`` is ``None`` when there is no prefix
+    (so ``Popen`` inherits the parent environment unchanged), otherwise a copy
+    of ``os.environ`` with the assignments applied.
+    """
+    overrides = {}
+    i = 0
+    while i < len(argv) and _ENV_ASSIGNMENT.match(argv[i]):
+        key, _, value = argv[i].partition("=")
+        overrides[key] = value
+        i += 1
+    if not overrides:
+        return argv, None
+    env = dict(os.environ)
+    env.update(overrides)
+    return argv[i:], env
 
 
 def _free_port(hostname="localhost"):
@@ -107,8 +138,12 @@ class MDIEngine:
         mdi.MDI_Init(f"-role DRIVER -name {self._name} -method TCP -port {port}")
 
         argv = self._build_argv(self._hostname, port)
+        # An engine's argv may carry a leading ``VAR=value`` env-assignment
+        # prefix (e.g. ``OMP_NUM_THREADS=1``), which only a shell would honor;
+        # apply it via ``env=`` since we launch without a shell.
+        argv, env = _split_env_prefix(argv)
         self.logger.debug(f"Launching MDI engine: {argv}")
-        self._process = subprocess.Popen(argv)
+        self._process = subprocess.Popen(argv, env=env)
 
         try:
             self._comm = self._accept()
