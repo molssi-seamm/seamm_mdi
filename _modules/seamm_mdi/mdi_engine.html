@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.7.15 documentation</title>
+    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.7.27 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
 
-    <script src="../../_static/documentation_options.js?v=cfb6c46a"></script>
+    <script src="../../_static/documentation_options.js?v=f166bad5"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,7 +52,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.7.15" />
+  <meta name="docsearch:version" content="2026.7.27" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -464,6 +464,8 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
@@ -480,6 +482,35 @@
 <span class="n">_MDI_ENERGY</span> <span class="o">=</span> <span class="s2">&quot;hartree&quot;</span>
 <span class="n">_MDI_FORCE</span> <span class="o">=</span> <span class="s2">&quot;hartree/bohr&quot;</span>
 <span class="n">_MDI_HESSIAN</span> <span class="o">=</span> <span class="s2">&quot;hartree/bohr**2&quot;</span>
+
+<span class="c1"># A leading ``VAR=value`` token in an argv (env-assignment prefix).</span>
+<span class="n">_ENV_ASSIGNMENT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[A-Za-z_][A-Za-z0-9_]*=&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_env_prefix</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split leading ``VAR=value`` env-assignment tokens off an ``argv``.</span>
+
+<span class="sd">    Some engines&#39; ``get_mdi_engine_command`` return an argv carrying a leading</span>
+<span class="sd">    ``OMP_NUM_THREADS=1``-style prefix, meant to be run through a shell (e.g.</span>
+<span class="sd">    ``shlex.join``&#39;d into a launch script). ``subprocess.Popen`` with no shell</span>
+<span class="sd">    would treat ``VAR=value`` as the program name and fail, so pull those tokens</span>
+<span class="sd">    into an environment overlay instead.</span>
+
+<span class="sd">    Returns ``(argv, env)`` where ``env`` is ``None`` when there is no prefix</span>
+<span class="sd">    (so ``Popen`` inherits the parent environment unchanged), otherwise a copy</span>
+<span class="sd">    of ``os.environ`` with the assignments applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">overrides</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_ENV_ASSIGNMENT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+        <span class="n">overrides</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">overrides</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">argv</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">overrides</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">:],</span> <span class="n">env</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_free_port</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">):</span>
@@ -562,8 +593,12 @@
         <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Init</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-role DRIVER -name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2"> -method TCP -port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="n">argv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_argv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hostname</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+        <span class="c1"># An engine&#39;s argv may carry a leading ``VAR=value`` env-assignment</span>
+        <span class="c1"># prefix (e.g. ``OMP_NUM_THREADS=1``), which only a shell would honor;</span>
+        <span class="c1"># apply it via ``env=`` since we launch without a shell.</span>
+        <span class="n">argv</span><span class="p">,</span> <span class="n">env</span> <span class="o">=</span> <span class="n">_split_env_prefix</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Launching MDI engine: </span><span class="si">{</span><span class="n">argv</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accept</span><span class="p">()</span>
