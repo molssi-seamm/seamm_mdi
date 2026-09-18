@@ -80,16 +80,16 @@ All unit conversion is done **inside** ``MDIEngine`` (via ``seamm_util.Q_``),
 so callers never sprinkle conversions through their own code. Each method takes
 an optional ``units=`` string; the defaults are MDI-native:
 
-======================  ==================  ==========================
-Method                  Default units       Example override
-======================  ==================  ==========================
-``set_coordinates``     ``bohr``            ``units="Å"``
-``energy``              ``hartree``         ``units="kcal/mol"``
-``forces``              ``hartree/bohr``    ``units="kcal/mol/Å"``
-``set_cell``            ``bohr``            ``units="Å"``
-``stress``              ``hartree/bohr**3`` ``units="GPa"``
-``hessian``             ``hartree/bohr**2`` ``units="kJ/mol/Å**2"``
-======================  ==================  ==========================
+======================  ===================  ==========================
+Method                  Default units        Example override
+======================  ===================  ==========================
+``set_coordinates``     ``bohr``             ``units="Å"``
+``energy``              ``hartree``          ``units="kcal/mol"``
+``forces``              ``hartree/bohr``     ``units="kcal/mol/Å"``
+``set_cell``            ``bohr``             ``units="Å"``
+``stress``              ``hartree/bohr**3``  ``units="GPa"``
+``hessian``             ``hartree/bohr**2``  ``units="kJ/mol/Å**2"``
+======================  ===================  ==========================
 
 Any unit string ``pint`` understands is accepted.
 
