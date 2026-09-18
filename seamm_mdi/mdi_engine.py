@@ -31,6 +31,7 @@ _MDI_LENGTH = "bohr"
 _MDI_ENERGY = "hartree"
 _MDI_FORCE = "hartree/bohr"
 _MDI_HESSIAN = "hartree/bohr**2"
+_MDI_STRESS = "hartree/bohr**3"
 
 # A leading ``VAR=value`` token in an argv (env-assignment prefix).
 _ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
@@ -243,6 +244,28 @@ class MDIEngine:
         mdi.MDI_Send_Command(">COORDS", self._comm)
         mdi.MDI_Send(xyz.ravel().tolist(), 3 * self._natoms, mdi.MDI_DOUBLE, self._comm)
 
+    def set_cell(self, vectors, units=_MDI_LENGTH):
+        """Send the periodic cell (lattice) vectors to the engine (``>CELL``).
+
+        Parameters
+        ----------
+        vectors : (3, 3) array-like
+            The three cell vectors as rows, in ``units``.
+        units : str
+            The units of ``vectors`` (default MDI-native bohr).
+
+        Notes
+        -----
+        Not every engine understands ``>CELL``; check :meth:`supports` first when
+        a molecular-only engine is a possibility. The MDI convention is that the
+        engine treats the system as fully periodic once a cell is set.
+        """
+        cell = np.asarray(vectors, dtype=float).reshape(3, 3)
+        if units != _MDI_LENGTH:
+            cell = Q_(cell, units).m_as(_MDI_LENGTH)
+        mdi.MDI_Send_Command(">CELL", self._comm)
+        mdi.MDI_Send(cell.ravel().tolist(), 9, mdi.MDI_DOUBLE, self._comm)
+
     def energy(self, units=_MDI_ENERGY):
         """Return the total energy in ``units`` (default MDI-native hartree)."""
         self.n_energy_calls += 1
@@ -262,6 +285,20 @@ class MDIEngine:
         if units != _MDI_FORCE:
             forces = Q_(forces, _MDI_FORCE).m_as(units)
         return forces
+
+    def stress(self, units=_MDI_STRESS):
+        """Return the stress tensor as a (3, 3) array in ``units``
+        (default hartree/bohr^3), via ``<STRESS``.
+
+        The engine returns the MDI pressure-sign convention; a non-periodic
+        engine typically returns zeros.
+        """
+        mdi.MDI_Send_Command("<STRESS", self._comm)
+        raw = mdi.MDI_Recv(9, mdi.MDI_DOUBLE, self._comm)
+        stress = np.asarray(raw, dtype=float).reshape(3, 3)
+        if units != _MDI_STRESS:
+            stress = Q_(stress, _MDI_STRESS).m_as(units)
+        return stress
 
     def supports(self, command, node="@DEFAULT"):
         """Whether the engine supports an MDI ``command`` (e.g. ``"<HESSIAN"``).

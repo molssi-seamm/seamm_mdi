@@ -8,6 +8,7 @@ can verify the protocol and the unit conversions without a real QM code.
 
     energy   = 0.5 * sum(coords_bohr)          [hartree]
     forces   = -0.5 for every component        [hartree/bohr]  (-dE/dx)
+    stress   = the cell vectors it was sent    [hartree/bohr^3] (zeros if none)
 
 Run as:  python mock_engine.py -mdi "-role ENGINE -name MOCK -method TCP \\
              -port <port> -hostname <host>"
@@ -35,15 +36,18 @@ def main():
         "<NAME",
         ">ELEMENTS",
         ">COORDS",
+        ">CELL",
         "SCF",
         "<ENERGY",
         "<FORCES",
+        "<STRESS",
         "EXIT",
     ):
         mdi.MDI_Register_command("@DEFAULT", command)
 
     natoms = 0
     coords = None
+    cell = np.zeros(9)
 
     while True:
         command = mdi.MDI_Recv_Command(comm)
@@ -58,6 +62,11 @@ def main():
             mdi.MDI_Recv(natoms, mdi.MDI_INT, comm)  # accepted, unused
         elif command == ">COORDS":
             coords = np.asarray(mdi.MDI_Recv(3 * natoms, mdi.MDI_DOUBLE, comm))
+        elif command == ">CELL":
+            cell = np.asarray(mdi.MDI_Recv(9, mdi.MDI_DOUBLE, comm))
+        elif command == "<STRESS":
+            # Echo the cell so the driver can check the round trip.
+            mdi.MDI_Send(cell.tolist(), 9, mdi.MDI_DOUBLE, comm)
         elif command == "SCF":
             pass
         elif command == "<ENERGY":
