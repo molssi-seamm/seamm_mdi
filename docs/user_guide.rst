@@ -55,6 +55,24 @@ point, since the engine is launched only once. The number of evaluations is
 tracked in ``engine.n_energy_calls`` and ``engine.n_force_calls`` (handy for
 reporting how many times the external code ran).
 
+Periodic systems and optional capabilities
+------------------------------------------
+
+For a periodic system send the cell before the coordinates; the engine then
+treats the system as fully periodic and can return the stress tensor:
+
+.. code-block:: python
+
+   if engine.supports(">CELL"):
+       engine.set_cell(cell_vectors, units="Å")   # (3, 3), vectors as rows
+       engine.set_coordinates(xyz, units="Å")
+       sigma = engine.stress(units="GPa")          # (3, 3), pressure sign convention
+
+Not every engine understands ``>CELL`` (MOPAC's does not; xnn's and tblite's
+do), so check with ``engine.supports(command)`` first. The same check gates the
+optional analytic Hessian: ``engine.supports("<HESSIAN")`` is truthful, and
+``engine.hessian()`` returns the (3n, 3n) matrix when it is offered.
+
 Units
 -----
 
@@ -68,6 +86,9 @@ Method                  Default units       Example override
 ``set_coordinates``     ``bohr``            ``units="Å"``
 ``energy``              ``hartree``         ``units="kcal/mol"``
 ``forces``              ``hartree/bohr``    ``units="kcal/mol/Å"``
+``set_cell``            ``bohr``            ``units="Å"``
+``stress``              ``hartree/bohr**3`` ``units="GPa"``
+``hessian``             ``hartree/bohr**2`` ``units="kJ/mol/Å**2"``
 ======================  ==================  ==========================
 
 Any unit string ``pint`` understands is accepted.
