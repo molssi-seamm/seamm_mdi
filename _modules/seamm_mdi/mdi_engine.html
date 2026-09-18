@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.7.27 documentation</title>
+    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.9.18 documentation</title>
   
   
   
@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -35,12 +35,12 @@
     <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=c224919a" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
 
-    <script src="../../_static/documentation_options.js?v=f166bad5"></script>
+    <script src="../../_static/documentation_options.js?v=4c890157"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,7 +52,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.7.27" />
+  <meta name="docsearch:version" content="2026.9.18" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -451,7 +451,7 @@
   <h1>Source code for seamm_mdi.mdi_engine</h1><div class="highlight"><pre>
 <span></span><span class="c1"># -*- coding: utf-8 -*-</span>
 
-<span class="sd">&quot;&quot;&quot;Driver-side MDI engine facility for SEAMM.</span>
+<span class="sd">"""Driver-side MDI engine facility for SEAMM.</span>
 
 <span class="sd">``MDIEngine`` launches an MDI engine once and drives it for many energy/force</span>
 <span class="sd">evaluations. The driver is the MDI *listener*: it binds a TCP port and the</span>
@@ -461,7 +461,7 @@
 
 <span class="sd">Local mode only for now: the engine is launched as a subprocess on the same host</span>
 <span class="sd">(``localhost``). Remote/queue launching through the SEAMM executor is planned.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -478,32 +478,33 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="c1"># MDI-native units (what crosses the wire).</span>
-<span class="n">_MDI_LENGTH</span> <span class="o">=</span> <span class="s2">&quot;bohr&quot;</span>
-<span class="n">_MDI_ENERGY</span> <span class="o">=</span> <span class="s2">&quot;hartree&quot;</span>
-<span class="n">_MDI_FORCE</span> <span class="o">=</span> <span class="s2">&quot;hartree/bohr&quot;</span>
-<span class="n">_MDI_HESSIAN</span> <span class="o">=</span> <span class="s2">&quot;hartree/bohr**2&quot;</span>
+<span class="n">_MDI_LENGTH</span> <span class="o">=</span> <span class="s2">"bohr"</span>
+<span class="n">_MDI_ENERGY</span> <span class="o">=</span> <span class="s2">"hartree"</span>
+<span class="n">_MDI_FORCE</span> <span class="o">=</span> <span class="s2">"hartree/bohr"</span>
+<span class="n">_MDI_HESSIAN</span> <span class="o">=</span> <span class="s2">"hartree/bohr**2"</span>
+<span class="n">_MDI_STRESS</span> <span class="o">=</span> <span class="s2">"hartree/bohr**3"</span>
 
 <span class="c1"># A leading ``VAR=value`` token in an argv (env-assignment prefix).</span>
-<span class="n">_ENV_ASSIGNMENT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[A-Za-z_][A-Za-z0-9_]*=&quot;</span><span class="p">)</span>
+<span class="n">_ENV_ASSIGNMENT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[A-Za-z_][A-Za-z0-9_]*="</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_split_env_prefix</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split leading ``VAR=value`` env-assignment tokens off an ``argv``.</span>
+<span class="w">    </span><span class="sd">"""Split leading ``VAR=value`` env-assignment tokens off an ``argv``.</span>
 
-<span class="sd">    Some engines&#39; ``get_mdi_engine_command`` return an argv carrying a leading</span>
+<span class="sd">    Some engines' ``get_mdi_engine_command`` return an argv carrying a leading</span>
 <span class="sd">    ``OMP_NUM_THREADS=1``-style prefix, meant to be run through a shell (e.g.</span>
-<span class="sd">    ``shlex.join``&#39;d into a launch script). ``subprocess.Popen`` with no shell</span>
+<span class="sd">    ``shlex.join``'d into a launch script). ``subprocess.Popen`` with no shell</span>
 <span class="sd">    would treat ``VAR=value`` as the program name and fail, so pull those tokens</span>
 <span class="sd">    into an environment overlay instead.</span>
 
 <span class="sd">    Returns ``(argv, env)`` where ``env`` is ``None`` when there is no prefix</span>
 <span class="sd">    (so ``Popen`` inherits the parent environment unchanged), otherwise a copy</span>
 <span class="sd">    of ``os.environ`` with the assignments applied.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">overrides</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_ENV_ASSIGNMENT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-        <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"="</span><span class="p">)</span>
         <span class="n">overrides</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">overrides</span><span class="p">:</span>
@@ -513,8 +514,8 @@
     <span class="k">return</span> <span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">:],</span> <span class="n">env</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_free_port</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find a free TCP port on ``hostname`` (small TOCTOU race, fine locally).&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_free_port</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="s2">"localhost"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Find a free TCP port on ``hostname`` (small TOCTOU race, fine locally)."""</span>
     <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">hostname</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
@@ -526,13 +527,13 @@
 <div class="viewcode-block" id="MDIEngine">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MDIEngine</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Drive an MDI engine for repeated energy/force evaluations.</span>
+<span class="w">    </span><span class="sd">"""Drive an MDI engine for repeated energy/force evaluations.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    build_argv : callable(hostname, port) -&gt; list[str]</span>
-<span class="sd">        Builds the argv that launches the engine wrapper, pointed at the driver&#39;s</span>
-<span class="sd">        ``hostname``/``port`` (e.g. from a program step&#39;s</span>
+<span class="sd">        Builds the argv that launches the engine wrapper, pointed at the driver's</span>
+<span class="sd">        ``hostname``/``port`` (e.g. from a program step's</span>
 <span class="sd">        ``get_mdi_engine_command``). The engine must be ``-role ENGINE`` so it</span>
 <span class="sd">        connects back to the driver.</span>
 <span class="sd">    elements : sequence[int]</span>
@@ -549,15 +550,15 @@
 <span class="sd">    -----</span>
 <span class="sd">    One active engine per process (MDI keeps global state). Use as a context</span>
 <span class="sd">    manager, or call :meth:`start` / :meth:`close` explicitly.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">build_argv</span><span class="p">,</span>
         <span class="n">elements</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;SEAMM&quot;</span><span class="p">,</span>
-        <span class="n">hostname</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"SEAMM"</span><span class="p">,</span>
+        <span class="n">hostname</span><span class="o">=</span><span class="s2">"localhost"</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>
         <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
     <span class="p">):</span>
@@ -585,19 +586,19 @@
 <div class="viewcode-block" id="MDIEngine.start">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.start">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Listen, launch the engine, accept its connection, send the topology.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Listen, launch the engine, accept its connection, send the topology."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span>
 
         <span class="n">port</span> <span class="o">=</span> <span class="n">_free_port</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hostname</span><span class="p">)</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Init</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-role DRIVER -name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2"> -method TCP -port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Init</span><span class="p">(</span><span class="sa">f</span><span class="s2">"-role DRIVER -name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2"> -method TCP -port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">argv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_argv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hostname</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
-        <span class="c1"># An engine&#39;s argv may carry a leading ``VAR=value`` env-assignment</span>
+        <span class="c1"># An engine's argv may carry a leading ``VAR=value`` env-assignment</span>
         <span class="c1"># prefix (e.g. ``OMP_NUM_THREADS=1``), which only a shell would honor;</span>
         <span class="c1"># apply it via ``env=`` since we launch without a shell.</span>
         <span class="n">argv</span><span class="p">,</span> <span class="n">env</span> <span class="o">=</span> <span class="n">_split_env_prefix</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Launching MDI engine: </span><span class="si">{</span><span class="n">argv</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Launching MDI engine: </span><span class="si">{</span><span class="n">argv</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
@@ -607,9 +608,9 @@
             <span class="k">raise</span>
 
         <span class="c1"># Fixed topology for the session.</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;&gt;NATOMS&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&gt;NATOMS"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_INT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;&gt;ELEMENTS&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&gt;ELEMENTS"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_elements</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_INT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">True</span>
@@ -617,18 +618,18 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_accept</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Accept the engine connection, with a best-effort timeout (Unix).&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="s2">&quot;SIGALRM&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Accept the engine connection, with a best-effort timeout (Unix)."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="s2">"SIGALRM"</span><span class="p">):</span>
 
             <span class="k">def</span><span class="w"> </span><span class="nf">_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                        <span class="s2">&quot;MDI engine exited (return code &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">returncode</span><span class="si">}</span><span class="s2">) before connecting -- check &quot;</span>
-                        <span class="s2">&quot;the engine launch command and its environment.&quot;</span>
+                        <span class="s2">"MDI engine exited (return code "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">returncode</span><span class="si">}</span><span class="s2">) before connecting -- check "</span>
+                        <span class="s2">"the engine launch command and its environment."</span>
                     <span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;MDI engine did not connect within </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="si">}</span><span class="s2"> s&quot;</span>
+                    <span class="sa">f</span><span class="s2">"MDI engine did not connect within </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="si">}</span><span class="s2"> s"</span>
                 <span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
@@ -647,12 +648,12 @@
 <div class="viewcode-block" id="MDIEngine.close">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Tell the engine to exit and reap the process.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Tell the engine to exit and reap the process."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;EXIT&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+                <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"EXIT"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error sending EXIT to the MDI engine: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Error sending EXIT to the MDI engine: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
@@ -687,7 +688,7 @@
 <div class="viewcode-block" id="MDIEngine.set_coordinates">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.set_coordinates">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">_MDI_LENGTH</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Send the atomic coordinates to the engine.</span>
+<span class="w">        </span><span class="sd">"""Send the atomic coordinates to the engine.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -695,22 +696,47 @@
 <span class="sd">            The coordinates, in ``units``.</span>
 <span class="sd">        units : str</span>
 <span class="sd">            The units of ``xyz`` (default MDI-native bohr).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">xyz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="si">}</span><span class="s2"> atoms, got </span><span class="si">{</span><span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="si">}</span><span class="s2"> atoms, got </span><span class="si">{</span><span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="n">_MDI_LENGTH</span><span class="p">:</span>
             <span class="n">xyz</span> <span class="o">=</span> <span class="n">Q_</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span><span class="o">.</span><span class="n">m_as</span><span class="p">(</span><span class="n">_MDI_LENGTH</span><span class="p">)</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;&gt;COORDS&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&gt;COORDS"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send</span><span class="p">(</span><span class="n">xyz</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MDIEngine.set_cell">
+<a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.set_cell">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_cell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">_MDI_LENGTH</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Send the periodic cell (lattice) vectors to the engine (``&gt;CELL``).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vectors : (3, 3) array-like</span>
+<span class="sd">            The three cell vectors as rows, in ``units``.</span>
+<span class="sd">        units : str</span>
+<span class="sd">            The units of ``vectors`` (default MDI-native bohr).</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Not every engine understands ``&gt;CELL``; check :meth:`supports` first when</span>
+<span class="sd">        a molecular-only engine is a possibility. The MDI convention is that the</span>
+<span class="sd">        engine treats the system as fully periodic once a cell is set.</span>
+<span class="sd">        """</span>
+        <span class="n">cell</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="n">_MDI_LENGTH</span><span class="p">:</span>
+            <span class="n">cell</span> <span class="o">=</span> <span class="n">Q_</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span><span class="o">.</span><span class="n">m_as</span><span class="p">(</span><span class="n">_MDI_LENGTH</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&gt;CELL"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="mi">9</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MDIEngine.energy">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.energy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">_MDI_ENERGY</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the total energy in ``units`` (default MDI-native hartree).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Return the total energy in ``units`` (default MDI-native hartree)."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_energy_calls</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;&lt;ENERGY&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&lt;ENERGY"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Recv</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">flat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="n">_MDI_ENERGY</span><span class="p">:</span>
@@ -721,9 +747,9 @@
 <div class="viewcode-block" id="MDIEngine.forces">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.forces">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">forces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">_MDI_FORCE</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the forces as an (n, 3) array in ``units`` (default hartree/bohr).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Return the forces as an (n, 3) array in ``units`` (default hartree/bohr)."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_force_calls</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;&lt;FORCES&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&lt;FORCES"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Recv</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">forces</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="n">_MDI_FORCE</span><span class="p">:</span>
@@ -731,36 +757,53 @@
         <span class="k">return</span> <span class="n">forces</span></div>
 
 
+<div class="viewcode-block" id="MDIEngine.stress">
+<a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.stress">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">_MDI_STRESS</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the stress tensor as a (3, 3) array in ``units``</span>
+<span class="sd">        (default hartree/bohr^3), via ``&lt;STRESS``.</span>
+
+<span class="sd">        The engine returns the MDI pressure-sign convention; a non-periodic</span>
+<span class="sd">        engine typically returns zeros.</span>
+<span class="sd">        """</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&lt;STRESS"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Recv</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">stress</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="n">_MDI_STRESS</span><span class="p">:</span>
+            <span class="n">stress</span> <span class="o">=</span> <span class="n">Q_</span><span class="p">(</span><span class="n">stress</span><span class="p">,</span> <span class="n">_MDI_STRESS</span><span class="p">)</span><span class="o">.</span><span class="n">m_as</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stress</span></div>
+
+
 <div class="viewcode-block" id="MDIEngine.supports">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.supports">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">supports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">node</span><span class="o">=</span><span class="s2">&quot;@DEFAULT&quot;</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Whether the engine supports an MDI ``command`` (e.g. ``&quot;&lt;HESSIAN&quot;``).</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">supports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">node</span><span class="o">=</span><span class="s2">"@DEFAULT"</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Whether the engine supports an MDI ``command`` (e.g. ``"&lt;HESSIAN"``).</span>
 
 <span class="sd">        Lets a driver discover an optional capability at runtime rather than</span>
 <span class="sd">        being told in advance -- e.g. use the analytic Hessian if the engine</span>
-<span class="sd">        offers one, else finite-difference the forces.&quot;&quot;&quot;</span>
+<span class="sd">        offers one, else finite-difference the forces."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Check_Command_Exists</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pragma: no cover - conservative fallback</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MDI_Check_Command_Exists(</span><span class="si">{</span><span class="n">command</span><span class="si">}</span><span class="s2">) failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"MDI_Check_Command_Exists(</span><span class="si">{</span><span class="n">command</span><span class="si">}</span><span class="s2">) failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span></div>
 
 
 <div class="viewcode-block" id="MDIEngine.hessian">
 <a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.hessian">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">hessian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">_MDI_HESSIAN</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``</span>
-<span class="sd">        (default hartree/bohr^2), via the engine&#39;s custom ``&lt;HESSIAN`` command.</span>
+<span class="w">        </span><span class="sd">"""Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``</span>
+<span class="sd">        (default hartree/bohr^2), via the engine's custom ``&lt;HESSIAN`` command.</span>
 
 <span class="sd">        Raises ``NotImplementedError`` if the engine does not support ``&lt;HESSIAN``</span>
-<span class="sd">        -- the caller should then finite-difference :meth:`forces` instead.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">supports</span><span class="p">(</span><span class="s2">&quot;&lt;HESSIAN&quot;</span><span class="p">):</span>
+<span class="sd">        -- the caller should then finite-difference :meth:`forces` instead."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">supports</span><span class="p">(</span><span class="s2">"&lt;HESSIAN"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                <span class="s2">&quot;This MDI engine does not provide an analytic Hessian (&lt;HESSIAN).&quot;</span>
+                <span class="s2">"This MDI engine does not provide an analytic Hessian (&lt;HESSIAN)."</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_hessian_calls</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">n</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_natoms</span>
-        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">&quot;&lt;HESSIAN&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&lt;HESSIAN"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Recv</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
         <span class="n">hessian</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="n">_MDI_HESSIAN</span><span class="p">:</span>
@@ -797,8 +840,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -810,7 +853,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
 </p></div>
       
     </div>
