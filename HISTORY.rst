@@ -2,6 +2,12 @@
 History
 =======
 
+2026.9.18 -- Periodic cells and stress
+    * Added ``MDIEngine.set_cell()`` (``>CELL``) and ``MDIEngine.stress()``
+      (``<STRESS``) so a driver can evaluate periodic systems, e.g. the Energy
+      step labelling structures with an MLFF. The mock test engine echoes the
+      cell as the stress.
+
 2026.7.27 -- Bugfix: honor an environment-variable prefix on the engine command
     * An engine launch command may lead with ``VAR=value`` assignments (e.g.
       ``OMP_NUM_THREADS=1``) to pin the engine's threads. Those are a shell

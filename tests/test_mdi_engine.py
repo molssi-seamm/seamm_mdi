@@ -89,6 +89,26 @@ def test_call_counters(engine):
     assert engine.n_force_calls == 1
 
 
+def test_cell_and_stress_roundtrip(engine):
+    """>CELL is sent in bohr; <STRESS comes back in hartree/bohr^3 (echoed cell)."""
+    engine.set_coordinates(np.zeros((3, 3)))
+    cell = np.diag([10.0, 12.0, 14.0])  # Å
+    engine.set_cell(cell, units="Å")
+    stress = engine.stress()
+    bohr = Q_(1.0, "Å").m_as("bohr")
+    assert stress.shape == (3, 3)
+    assert np.allclose(stress, cell * bohr)
+    # Units are converted on the way out too.
+    gpa = engine.stress(units="GPa")
+    assert np.allclose(gpa, Q_(stress, "hartree/bohr**3").m_as("GPa"))
+
+
+def test_supports_reports_commands(engine):
+    assert engine.supports(">CELL")
+    assert engine.supports("<STRESS")
+    assert not engine.supports("<HESSIAN")
+
+
 def test_wrong_atom_count_raises(engine):
     with pytest.raises(ValueError):
         engine.set_coordinates(np.zeros((4, 3)), units="bohr")
