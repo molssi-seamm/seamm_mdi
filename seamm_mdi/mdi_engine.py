@@ -18,6 +18,7 @@ import re
 import signal
 import socket
 import subprocess
+import time
 
 import numpy as np
 
@@ -121,6 +122,11 @@ class MDIEngine:
         self._process = None
         self._started = False
 
+        # How many times to try to start the engine, and the wait (s) before the
+        # second attempt, longer for each one after
+        self.start_attempts = 3
+        self.start_retry_wait = 1.0
+
         # How many times the engine has been asked to evaluate the structure.
         self.n_energy_calls = 0
         self.n_force_calls = 0
@@ -131,10 +137,37 @@ class MDIEngine:
     # ----------------------------------------------------------------- #
 
     def start(self):
-        """Listen, launch the engine, accept its connection, send the topology."""
+        """Listen, launch the engine, accept its connection, send the topology.
+
+        Starting is tried up to :attr:`start_attempts` times: an engine has
+        occasionally failed to start when engines were started one after another
+        (the first command, >NATOMS, failed on a connection that had just been
+        accepted), and the next attempt, on a new port, succeeds. The error of the
+        last attempt is raised if none does.
+        """
         if self._started:
             return self
 
+        for attempt in range(1, self.start_attempts + 1):
+            try:
+                return self._start_once()
+            except Exception as e:
+                self._kill_process()
+                self._process = None
+                self._comm = None
+                if attempt == self.start_attempts:
+                    raise RuntimeError(
+                        f"The MDI engine could not be started in {attempt} "
+                        f"attempts: {e}"
+                    ) from e
+                self.logger.warning(
+                    f"The MDI engine did not start (attempt {attempt} of "
+                    f"{self.start_attempts}): {e}. Trying again."
+                )
+                time.sleep(self.start_retry_wait * attempt)
+
+    def _start_once(self):
+        """One attempt to start the engine (see :meth:`start`)."""
         port = _free_port(self._hostname)
         mdi.MDI_Init(f"-role DRIVER -name {self._name} -method TCP -port {port}")
 
