@@ -2,6 +2,12 @@
 History
 =======
 
+2026.10.19 -- Bugfix: an engine that occasionally failed to start
+    * Starting an MDI engine is tried up to three times, each on a new port: an
+      engine occasionally failed to start when engines were started one after
+      another (a geomeTRIC optimization starts one for each step), and the next
+      attempt succeeds. If none does, the error says so.
+
 2026.9.18 -- Periodic cells and stress
     * Added ``MDIEngine.set_cell()`` (``>CELL``) and ``MDIEngine.stress()``
       (``<STRESS``) so a driver can evaluate periodic systems, e.g. the Energy

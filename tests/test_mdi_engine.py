@@ -145,3 +145,31 @@ def test_env_prefixed_argv_launches(monkeypatch):
     with MDIEngine(build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
         eng.set_coordinates(np.eye(3), units="bohr")
         assert eng.energy() == pytest.approx(0.5 * 3.0)
+
+
+def test_start_is_tried_again(monkeypatch):
+    """An engine that fails to start (here, one that exits without connecting) is
+    started again, on a new port; after the last attempt the error is raised."""
+    calls = []
+
+    def build_argv(hostname, port):
+        calls.append(port)
+        if len(calls) == 1:
+            return [sys.executable, "-c", "import sys; sys.exit(3)"]
+        return _build_argv(hostname, port)
+
+    eng = MDIEngine(build_argv, elements=[8, 1, 1], timeout=3.0)
+    eng.start_retry_wait = 0.1
+    with eng:
+        eng.set_coordinates(np.eye(3), units="bohr")
+        assert eng.energy() == pytest.approx(0.5 * 3.0)
+    assert len(calls) == 2
+
+    def never(hostname, port):
+        return [sys.executable, "-c", "import sys; sys.exit(3)"]
+
+    eng = MDIEngine(never, elements=[8, 1, 1], timeout=2.0)
+    eng.start_attempts = 2
+    eng.start_retry_wait = 0.1
+    with pytest.raises(RuntimeError, match="could not be started in 2 attempts"):
+        eng.start()
