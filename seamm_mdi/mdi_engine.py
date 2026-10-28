@@ -12,6 +12,7 @@ Local mode only for now: the engine is launched as a subprocess on the same host
 (``localhost``). Remote/queue launching through the SEAMM executor is planned.
 """
 
+import json
 import logging
 import os
 import re
@@ -344,6 +345,28 @@ class MDIEngine:
         except Exception as e:  # pragma: no cover - conservative fallback
             logger.debug(f"MDI_Check_Command_Exists({command}) failed: {e}")
             return False
+
+    def fingerprints(self):
+        """The fingerprints of the settings of the engine's last calculations,
+        or None if the engine does not give them.
+
+        Via the engine's custom ``<FINGERPRINT_LENGTH`` and ``<FINGERPRINT``
+        commands, which return JSON: ``{"energy": record, "hessian": record}``,
+        each the record of the last energy/gradient or analytic-Hessian run (None
+        until there has been one), as from
+        :func:`seamm_util.fingerprint.calculation_record`. A step stores them
+        with the results with ``Node.store_calculation_record()``.
+        """
+        if not self.supports("<FINGERPRINT"):
+            return None
+        mdi.MDI_Send_Command("<FINGERPRINT_LENGTH", self._comm)
+        raw = mdi.MDI_Recv(1, mdi.MDI_INT, self._comm)
+        n = int(np.asarray(raw).flat[0])
+        mdi.MDI_Send_Command("<FINGERPRINT", self._comm)
+        text = mdi.MDI_Recv(n, mdi.MDI_CHAR, self._comm)
+        # pymdi reads a string to its first NUL, and the buffer of exactly n
+        # characters has none, so whatever follows it may be appended.
+        return json.loads(text[:n])
 
     def hessian(self, units=_MDI_HESSIAN):
         """Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``

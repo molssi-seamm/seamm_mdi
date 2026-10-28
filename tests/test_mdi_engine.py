@@ -173,3 +173,22 @@ def test_start_is_tried_again(monkeypatch):
     eng.start_retry_wait = 0.1
     with pytest.raises(RuntimeError, match="could not be started in 2 attempts"):
         eng.start()
+
+
+def test_fingerprints(engine):
+    """An engine without the fingerprint commands gives None."""
+    assert engine.fingerprints() is None
+
+
+def test_fingerprints_from_engine():
+    def argv(hostname, port):
+        return _build_argv(hostname, port) + ["--fingerprint"]
+
+    with MDIEngine(argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        assert eng.supports("<FINGERPRINT")
+        assert eng.fingerprints() == {"energy": None, "hessian": None}
+        eng.set_coordinates(np.zeros((3, 3)), units="bohr")
+        eng.energy()
+        records = eng.fingerprints()
+        assert records["energy"]["fingerprint"] == "sha256:mock"
+        assert records["hessian"] is None
