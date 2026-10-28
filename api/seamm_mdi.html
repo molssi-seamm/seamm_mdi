@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>seamm_mdi package &#8212; SEAMM MDI 2026.10.19 documentation</title>
+    <title>seamm_mdi package &#8212; SEAMM MDI 2026.10.28 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=b2b4b3b2"></script>
+    <script src="../_static/documentation_options.js?v=bb9c4767"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,7 +54,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.10.19" />
+  <meta name="docsearch:version" content="2026.10.28" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -529,6 +529,19 @@ manager, or call <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEn
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.fingerprints">
+<span class="sig-name descname"><span class="pre">fingerprints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.fingerprints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.fingerprints" title="Link to this definition">#</a></dt>
+<dd><p>The fingerprints of the settings of the engine’s last calculations,
+or None if the engine does not give them.</p>
+<p>Via the engine’s custom <code class="docutils literal notranslate"><span class="pre">&lt;FINGERPRINT_LENGTH</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;FINGERPRINT</span></code>
+commands, which return JSON: <code class="docutils literal notranslate"><span class="pre">{&quot;energy&quot;:</span> <span class="pre">record,</span> <span class="pre">&quot;hessian&quot;:</span> <span class="pre">record}</span></code>,
+each the record of the last energy/gradient or analytic-Hessian run (None
+until there has been one), as from
+<code class="xref py py-func docutils literal notranslate"><span class="pre">seamm_util.fingerprint.calculation_record()</span></code>. A step stores them
+with the results with <code class="docutils literal notranslate"><span class="pre">Node.store_calculation_record()</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.forces">
 <span class="sig-name descname"><span class="pre">forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hartree/bohr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.forces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.forces" title="Link to this definition">#</a></dt>
 <dd><p>Return the forces as an (n, 3) array in <code class="docutils literal notranslate"><span class="pre">units</span></code> (default hartree/bohr).</p>
@@ -656,6 +669,7 @@ offers one, else finite-difference the forces.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine"><code class="docutils literal notranslate"><span class="pre">MDIEngine</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.close"><code class="docutils literal notranslate"><span class="pre">MDIEngine.close()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.energy"><code class="docutils literal notranslate"><span class="pre">MDIEngine.energy()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.fingerprints"><code class="docutils literal notranslate"><span class="pre">MDIEngine.fingerprints()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.forces"><code class="docutils literal notranslate"><span class="pre">MDIEngine.forces()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.hessian"><code class="docutils literal notranslate"><span class="pre">MDIEngine.hessian()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.set_cell"><code class="docutils literal notranslate"><span class="pre">MDIEngine.set_cell()</span></code></a></li>
