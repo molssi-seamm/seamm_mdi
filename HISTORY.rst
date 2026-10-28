@@ -2,6 +2,13 @@
 History
 =======
 
+2026.10.28 -- Fingerprints of an engine's calculations
+    * New ``MDIEngine.fingerprints()``: the fingerprints of the settings of the
+      engine's last energy and Hessian calculations, from engines that answer the
+      custom ``<FINGERPRINT_LENGTH`` and ``<FINGERPRINT`` commands (ORCA's, from
+      orca-step 2026.10.28), or None. A step stores them with its results, so that
+      results from an MDI engine can be compared with those of the code's own step.
+
 2026.10.19 -- Bugfix: an engine that occasionally failed to start
     * Starting an MDI engine is tried up to three times, each on a new port: an
       engine occasionally failed to start when engines were started one after

@@ -15,6 +15,7 @@ Run as:  python mock_engine.py -mdi "-role ENGINE -name MOCK -method TCP \\
 """
 
 import argparse
+import json
 
 import numpy as np
 
@@ -24,6 +25,7 @@ import mdi
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-mdi", required=True)
+    parser.add_argument("--fingerprint", action="store_true")
     args = parser.parse_args()
 
     mdi.MDI_Init(args.mdi)
@@ -44,6 +46,10 @@ def main():
         "EXIT",
     ):
         mdi.MDI_Register_command("@DEFAULT", command)
+    if args.fingerprint:
+        mdi.MDI_Register_command("@DEFAULT", "<FINGERPRINT_LENGTH")
+        mdi.MDI_Register_command("@DEFAULT", "<FINGERPRINT")
+    records = {"energy": None, "hessian": None}
 
     natoms = 0
     coords = None
@@ -71,6 +77,13 @@ def main():
             pass
         elif command == "<ENERGY":
             mdi.MDI_Send(0.5 * float(coords.sum()), 1, mdi.MDI_DOUBLE, comm)
+            records["energy"] = {"program": "MOCK", "fingerprint": "sha256:mock"}
+        elif command in ("<FINGERPRINT_LENGTH", "<FINGERPRINT"):
+            text = json.dumps(records, sort_keys=True)
+            if command == "<FINGERPRINT_LENGTH":
+                mdi.MDI_Send(len(text), 1, mdi.MDI_INT, comm)
+            else:
+                mdi.MDI_Send(text, len(text), mdi.MDI_CHAR, comm)
         elif command == "<FORCES":
             forces = np.full(3 * natoms, -0.5)
             mdi.MDI_Send(forces.tolist(), 3 * natoms, mdi.MDI_DOUBLE, comm)
