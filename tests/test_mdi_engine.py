@@ -236,3 +236,36 @@ def test_fingerprints_with_garbage_after_the_message(monkeypatch):
         "energy": {"fingerprint": "sha256:x"},
         "hessian": None,
     }
+
+
+def test_local_engines_dial_the_loopback_address():
+    """Local engines get 127.0.0.1, not "localhost", whose lookup failed for minutes
+    on a Mac (2026-10-29)."""
+    seen = []
+
+    def build_argv(hostname, port):
+        seen.append(hostname)
+        return _build_argv(hostname, port)
+
+    with MDIEngine(build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        eng.set_coordinates(np.eye(3), units="bohr")
+        eng.energy()
+    assert seen == ["127.0.0.1"]
+
+
+def test_start_backs_off(monkeypatch):
+    """Between attempts the engine waits 2, 10 and 30 s (scaled by
+    start_retry_wait), riding out a short outage."""
+    from seamm_mdi import mdi_engine
+
+    waits = []
+    monkeypatch.setattr(mdi_engine.time, "sleep", lambda s: waits.append(s))
+
+    def never(hostname, port):
+        return [sys.executable, "-c", "import sys; sys.exit(3)"]
+
+    eng = MDIEngine(never, elements=[8, 1, 1], timeout=1.0)
+    assert eng.start_attempts == 4
+    with pytest.raises(RuntimeError, match="could not be started in 4 attempts"):
+        eng.start()
+    assert waits == [2.0, 10.0, 30.0]

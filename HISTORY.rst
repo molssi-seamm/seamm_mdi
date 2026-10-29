@@ -2,6 +2,14 @@
 History
 =======
 
+2026.10.29 -- Bugfix: engines could not be started while "localhost" did not resolve
+    * A local engine now dials back to the loopback address 127.0.0.1 rather than
+      "localhost". On a Mac the name did not resolve for about two and a half minutes
+      ("[Errno 8] nodename nor servname provided, or not known"), and every engine
+      started in that time failed: 47 of 67 iterations in each of three jobs.
+    * Starting is tried four times, waiting 2, 10 and 30 seconds between attempts
+      (before, three times within three seconds), to ride out a short outage.
+
 2026.10.28.1 -- Bugfix: the fingerprints from an MDI engine could not be read
     * ``MDIEngine.fingerprints()`` failed with "'utf-8' codec can't decode byte 0xff
       ..." for real records. pymdi receives a string into a buffer of exactly its
