@@ -2,11 +2,16 @@
 History
 =======
 
-2026.10.29 -- Bugfix: engines could not be started while "localhost" did not resolve
+2026.10.29 -- Bugfix: a long loop of engines ran out of file descriptors
+    * Every engine start left two sockets open: the listener that MDI_Init opens and
+      the connection to the engine, which pymdi has no call to close. A job that
+      started many engines -- one per species in a Thermochemistry CBH ladder, about
+      100 in 13 iterations -- then ran out of file descriptors (256 for a macOS
+      JobServer) and could start no more engines, failing with "nodename nor
+      servname provided, or not known". The engine's sockets are now closed when it
+      is closed, and after a failed start.
     * A local engine now dials back to the loopback address 127.0.0.1 rather than
-      "localhost". On a Mac the name did not resolve for about two and a half minutes
-      ("[Errno 8] nodename nor servname provided, or not known"), and every engine
-      started in that time failed: 47 of 67 iterations in each of three jobs.
+      "localhost", so that no name lookup is needed.
     * Starting is tried four times, waiting 2, 10 and 30 seconds between attempts
       (before, three times within three seconds), to ride out a short outage.
 
