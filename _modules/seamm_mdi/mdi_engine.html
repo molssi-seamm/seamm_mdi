@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.10.28.1 documentation</title>
+    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.10.29 documentation</title>
   
   
   
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=e3e63ff4"></script>
+    <script src="../../_static/documentation_options.js?v=1fe4c37e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,7 +52,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.10.28.1" />
+  <meta name="docsearch:version" content="2026.10.29" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -460,7 +460,8 @@
 <span class="sd">here, in one place, via ``seamm_util.Q_``.</span>
 
 <span class="sd">Local mode only for now: the engine is launched as a subprocess on the same host</span>
-<span class="sd">(``localhost``). Remote/queue launching through the SEAMM executor is planned.</span>
+<span class="sd">and dials back to 127.0.0.1 (:data:`LOCAL_HOST`). Remote/queue launching through the</span>
+<span class="sd">SEAMM executor is planned.</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">ctypes</span>
@@ -470,6 +471,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">stat</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
@@ -517,7 +519,54 @@
     <span class="k">return</span> <span class="n">argv</span><span class="p">[</span><span class="n">i</span><span class="p">:],</span> <span class="n">env</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_free_port</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="s2">"localhost"</span><span class="p">):</span>
+<span class="c1">#: The address a local engine dials back to: the loopback address itself, not</span>
+<span class="c1">#: "localhost", whose lookup can fail for a while when the resolver hiccups (macOS,</span>
+<span class="c1">#: 2026-10-29: "[Errno 8] nodename nor servname provided, or not known" for about</span>
+<span class="c1">#: 2.5 minutes, so that engines could not be started)</span>
+<span class="n">LOCAL_HOST</span> <span class="o">=</span> <span class="s2">"127.0.0.1"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_close_sockets_on_port</span><span class="p">(</span><span class="n">port</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Close this process's sockets whose local port is ``port``: the listening</span>
+<span class="sd">    socket that MDI_Init opened for an engine and the connection it accepted.</span>
+
+<span class="sd">    pymdi has no call to close them, and MDI_Init opens a new listener for each</span>
+<span class="sd">    engine, so without this every engine start left two descriptors open, and a</span>
+<span class="sd">    long loop of engines ran out of them (256 for a macOS JobServer: a job's ~100th</span>
+<span class="sd">    engine could not be started). Only sockets on ``port`` are closed, so those of</span>
+<span class="sd">    other code are not touched. Returns the number closed.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">port</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="n">fd_dir</span> <span class="o">=</span> <span class="s2">"/dev/fd"</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="s2">"/dev/fd"</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"/proc/</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">/fd"</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fds</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">fd_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - no way to list descriptors</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="n">closed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">fd</span> <span class="ow">in</span> <span class="n">fds</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">stat</span><span class="o">.</span><span class="n">S_ISSOCK</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">fstat</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span><span class="o">.</span><span class="n">st_mode</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">fileno</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">address</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">getsockname</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">address</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>  <span class="c1"># leave the descriptor as it was</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">address</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">address</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">port</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+                <span class="n">closed</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">closed</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_free_port</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="n">LOCAL_HOST</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Find a free TCP port on ``hostname`` (small TOCTOU race, fine locally)."""</span>
     <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
@@ -544,7 +593,8 @@
 <span class="sd">    name : str</span>
 <span class="sd">        The MDI driver name.</span>
 <span class="sd">    hostname : str</span>
-<span class="sd">        The host the engine should dial (``localhost`` in local mode).</span>
+<span class="sd">        The host the engine should dial: by default the loopback address</span>
+<span class="sd">        127.0.0.1, which needs no name lookup.</span>
 <span class="sd">    timeout : float</span>
 <span class="sd">        Seconds to wait for the engine to connect before giving up.</span>
 <span class="sd">    logger : logging.Logger</span>
@@ -561,7 +611,7 @@
         <span class="n">elements</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s2">"SEAMM"</span><span class="p">,</span>
-        <span class="n">hostname</span><span class="o">=</span><span class="s2">"localhost"</span><span class="p">,</span>
+        <span class="n">hostname</span><span class="o">=</span><span class="n">LOCAL_HOST</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>
         <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
     <span class="p">):</span>
@@ -576,10 +626,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_port</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># the port of the engine's connection, to close it</span>
 
-        <span class="c1"># How many times to try to start the engine, and the wait (s) before the</span>
-        <span class="c1"># second attempt, longer for each one after</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">start_attempts</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="c1"># How many times to try to start the engine, the waits (s) before the</span>
+        <span class="c1"># attempts after the first, and a factor for them (tests make them short)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_attempts</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_retry_waits</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start_retry_wait</span> <span class="o">=</span> <span class="mf">1.0</span>
 
         <span class="c1"># How many times the engine has been asked to evaluate the structure.</span>
@@ -596,11 +648,13 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Listen, launch the engine, accept its connection, send the topology.</span>
 
-<span class="sd">        Starting is tried up to :attr:`start_attempts` times: an engine has</span>
+<span class="sd">        Starting is tried up to :attr:`start_attempts` times, waiting</span>
+<span class="sd">        :attr:`start_retry_waits` (2, 10 and 30 s) between them: an engine has</span>
 <span class="sd">        occasionally failed to start when engines were started one after another</span>
 <span class="sd">        (the first command, &gt;NATOMS, failed on a connection that had just been</span>
-<span class="sd">        accepted), and the next attempt, on a new port, succeeds. The error of the</span>
-<span class="sd">        last attempt is raised if none does.</span>
+<span class="sd">        accepted), and the next attempt, on a new port, succeeds; the longer waits</span>
+<span class="sd">        ride out a short outage of the machine's networking. The error of the last</span>
+<span class="sd">        attempt is raised if none does.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span>
@@ -612,6 +666,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_kill_process</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_close_sockets</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">attempt</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_attempts</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"The MDI engine could not be started in </span><span class="si">{</span><span class="n">attempt</span><span class="si">}</span><span class="s2"> "</span>
@@ -621,12 +676,14 @@
                     <span class="sa">f</span><span class="s2">"The MDI engine did not start (attempt </span><span class="si">{</span><span class="n">attempt</span><span class="si">}</span><span class="s2"> of "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start_attempts</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. Trying again."</span>
                 <span class="p">)</span>
-                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_retry_wait</span> <span class="o">*</span> <span class="n">attempt</span><span class="p">)</span></div>
+                <span class="n">waits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_retry_waits</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_retry_wait</span> <span class="o">*</span> <span class="n">waits</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">waits</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_start_once</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""One attempt to start the engine (see :meth:`start`)."""</span>
         <span class="n">port</span> <span class="o">=</span> <span class="n">_free_port</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hostname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_port</span> <span class="o">=</span> <span class="n">port</span>
         <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Init</span><span class="p">(</span><span class="sa">f</span><span class="s2">"-role DRIVER -name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2"> -method TCP -port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">argv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_argv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hostname</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
@@ -696,8 +753,17 @@
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_kill_process</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_close_sockets</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_close_sockets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Close the listening socket and connection of this engine (see</span>
+<span class="sd">        :func:`_close_sockets_on_port`)."""</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">_close_sockets_on_port</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_port</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Closed </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> socket(s) of the MDI engine on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_port</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_port</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_kill_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

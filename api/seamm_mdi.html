@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>seamm_mdi package &#8212; SEAMM MDI 2026.10.28.1 documentation</title>
+    <title>seamm_mdi package &#8212; SEAMM MDI 2026.10.29 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=e3e63ff4"></script>
+    <script src="../_static/documentation_options.js?v=1fe4c37e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,7 +54,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.10.28.1" />
+  <meta name="docsearch:version" content="2026.10.29" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -492,10 +492,25 @@ engine connects back to it (the direction that works both locally and, later,
 from a compute node dialing back to the JobServer). Unit conversions are handled
 here, in one place, via <code class="docutils literal notranslate"><span class="pre">seamm_util.Q_</span></code>.</p>
 <p>Local mode only for now: the engine is launched as a subprocess on the same host
-(<code class="docutils literal notranslate"><span class="pre">localhost</span></code>). Remote/queue launching through the SEAMM executor is planned.</p>
+and dials back to 127.0.0.1 (<a class="reference internal" href="#seamm_mdi.mdi_engine.LOCAL_HOST" title="seamm_mdi.mdi_engine.LOCAL_HOST"><code class="xref py py-data docutils literal notranslate"><span class="pre">LOCAL_HOST</span></code></a>). Remote/queue launching through the
+SEAMM executor is planned.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.LOCAL_HOST">
+<span class="sig-prename descclassname"><span class="pre">seamm_mdi.mdi_engine.</span></span><span class="sig-name descname"><span class="pre">LOCAL_HOST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'127.0.0.1'</span></span><a class="headerlink" href="#seamm_mdi.mdi_engine.LOCAL_HOST" title="Link to this definition">#</a></dt>
+<dd><p>the loopback address itself, not
+“localhost”, whose lookup can fail for a while when the resolver hiccups (macOS,
+2026-10-29: “[Errno 8] nodename nor servname provided, or not known” for about
+2.5 minutes, so that engines could not be started)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address a local engine dials back to</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">seamm_mdi.mdi_engine.</span></span><span class="sig-name descname"><span class="pre">MDIEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">build_argv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SEAMM'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Logger</span> <span class="pre">seamm_mdi.mdi_engine</span> <span class="pre">(WARNING)&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">seamm_mdi.mdi_engine.</span></span><span class="sig-name descname"><span class="pre">MDIEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">build_argv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SEAMM'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Logger</span> <span class="pre">seamm_mdi.mdi_engine</span> <span class="pre">(WARNING)&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Drive an MDI engine for repeated energy/force evaluations.</p>
 <dl class="field-list simple">
@@ -507,7 +522,8 @@ here, in one place, via <code class="docutils literal notranslate"><span class="
 connects back to the driver.</p></li>
 <li><p><strong>elements</strong> (<em>sequence</em><em>[</em><em>int</em><em>]</em>) – Atomic numbers of the atoms, in coordinate order. Fixed for the session.</p></li>
 <li><p><strong>name</strong> (<em>str</em>) – The MDI driver name.</p></li>
-<li><p><strong>hostname</strong> (<em>str</em>) – The host the engine should dial (<code class="docutils literal notranslate"><span class="pre">localhost</span></code> in local mode).</p></li>
+<li><p><strong>hostname</strong> (<em>str</em>) – The host the engine should dial: by default the loopback address
+127.0.0.1, which needs no name lookup.</p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait for the engine to connect before giving up.</p></li>
 <li><p><strong>logger</strong> (<em>logging.Logger</em>)</p></li>
 </ul>
@@ -592,11 +608,13 @@ engine treats the system as fully periodic once a cell is set.</p>
 <dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.start" title="Link to this definition">#</a></dt>
 <dd><p>Listen, launch the engine, accept its connection, send the topology.</p>
-<p>Starting is tried up to <code class="xref py py-attr docutils literal notranslate"><span class="pre">start_attempts</span></code> times: an engine has
+<p>Starting is tried up to <code class="xref py py-attr docutils literal notranslate"><span class="pre">start_attempts</span></code> times, waiting
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">start_retry_waits</span></code> (2, 10 and 30 s) between them: an engine has
 occasionally failed to start when engines were started one after another
 (the first command, &gt;NATOMS, failed on a connection that had just been
-accepted), and the next attempt, on a new port, succeeds. The error of the
-last attempt is raised if none does.</p>
+accepted), and the next attempt, on a new port, succeeds; the longer waits
+ride out a short outage of the machine’s networking. The error of the last
+attempt is raised if none does.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -666,6 +684,7 @@ offers one, else finite-difference the forces.</p>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-seamm_mdi.mdi_engine">seamm_mdi.mdi_engine module</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.LOCAL_HOST"><code class="docutils literal notranslate"><span class="pre">LOCAL_HOST</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine"><code class="docutils literal notranslate"><span class="pre">MDIEngine</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.close"><code class="docutils literal notranslate"><span class="pre">MDIEngine.close()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.energy"><code class="docutils literal notranslate"><span class="pre">MDIEngine.energy()</span></code></a></li>
