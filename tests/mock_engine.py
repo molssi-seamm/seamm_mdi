@@ -77,7 +77,13 @@ def main():
             pass
         elif command == "<ENERGY":
             mdi.MDI_Send(0.5 * float(coords.sum()), 1, mdi.MDI_DOUBLE, comm)
-            records["energy"] = {"program": "MOCK", "fingerprint": "sha256:mock"}
+            # A record about as long as a real one, with text that has to be escaped
+            records["energy"] = {
+                "program": "MOCK",
+                "fingerprint": "sha256:mock",
+                "files": {"orca.inp": "! B2PLYP D3ZERO cc-pVTZ\n%SCF\nEND\n" * 200},
+                "note": "Å ² — not ASCII",
+            }
         elif command in ("<FINGERPRINT_LENGTH", "<FINGERPRINT"):
             text = json.dumps(records, sort_keys=True)
             if command == "<FINGERPRINT_LENGTH":

@@ -12,6 +12,7 @@ Local mode only for now: the engine is launched as a subprocess on the same host
 (``localhost``). Remote/queue launching through the SEAMM executor is planned.
 """
 
+import ctypes
 import json
 import logging
 import os
@@ -363,10 +364,13 @@ class MDIEngine:
         raw = mdi.MDI_Recv(1, mdi.MDI_INT, self._comm)
         n = int(np.asarray(raw).flat[0])
         mdi.MDI_Send_Command("<FINGERPRINT", self._comm)
-        text = mdi.MDI_Recv(n, mdi.MDI_CHAR, self._comm)
-        # pymdi reads a string to its first NUL, and the buffer of exactly n
-        # characters has none, so whatever follows it may be appended.
-        return json.loads(text[:n])
+        # pymdi receives a string into a buffer of exactly n characters, with no
+        # terminating NUL, then reads it as a C string: past its end, into whatever
+        # follows, which it then decodes and may fail on (0xff ...). So receive into
+        # a buffer of our own with room for the NUL, and decode exactly n bytes.
+        buffer = (ctypes.c_char * (n + 1))()
+        mdi.MDI_Recv(n, mdi.MDI_CHAR, self._comm, buf=buffer)
+        return json.loads(buffer.raw[:n].decode("utf-8"))
 
     def hessian(self, units=_MDI_HESSIAN):
         """Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``
