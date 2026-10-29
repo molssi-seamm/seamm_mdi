@@ -9,7 +9,8 @@ from a compute node dialing back to the JobServer). Unit conversions are handled
 here, in one place, via ``seamm_util.Q_``.
 
 Local mode only for now: the engine is launched as a subprocess on the same host
-(``localhost``). Remote/queue launching through the SEAMM executor is planned.
+and dials back to 127.0.0.1 (:data:`LOCAL_HOST`). Remote/queue launching through the
+SEAMM executor is planned.
 """
 
 import ctypes
@@ -19,6 +20,7 @@ import os
 import re
 import signal
 import socket
+import stat
 import subprocess
 import time
 
@@ -66,7 +68,54 @@ def _split_env_prefix(argv):
     return argv[i:], env
 
 
-def _free_port(hostname="localhost"):
+#: The address a local engine dials back to: the loopback address itself, not
+#: "localhost", whose lookup can fail for a while when the resolver hiccups (macOS,
+#: 2026-10-29: "[Errno 8] nodename nor servname provided, or not known" for about
+#: 2.5 minutes, so that engines could not be started)
+LOCAL_HOST = "127.0.0.1"
+
+
+def _close_sockets_on_port(port):
+    """Close this process's sockets whose local port is ``port``: the listening
+    socket that MDI_Init opened for an engine and the connection it accepted.
+
+    pymdi has no call to close them, and MDI_Init opens a new listener for each
+    engine, so without this every engine start left two descriptors open, and a
+    long loop of engines ran out of them (256 for a macOS JobServer: a job's ~100th
+    engine could not be started). Only sockets on ``port`` are closed, so those of
+    other code are not touched. Returns the number closed.
+    """
+    if port is None:
+        return 0
+    fd_dir = "/dev/fd" if os.path.isdir("/dev/fd") else f"/proc/{os.getpid()}/fd"
+    try:
+        fds = [int(name) for name in os.listdir(fd_dir) if name.isdigit()]
+    except OSError:  # pragma: no cover - no way to list descriptors
+        return 0
+    closed = 0
+    for fd in fds:
+        try:
+            if not stat.S_ISSOCK(os.fstat(fd).st_mode):
+                continue
+            s = socket.socket(fileno=fd)
+        except OSError:
+            continue
+        try:
+            address = s.getsockname()
+        except OSError:
+            address = None
+        finally:
+            s.detach()  # leave the descriptor as it was
+        if isinstance(address, tuple) and len(address) >= 2 and address[1] == port:
+            try:
+                os.close(fd)
+                closed += 1
+            except OSError:
+                pass
+    return closed
+
+
+def _free_port(hostname=LOCAL_HOST):
     """Find a free TCP port on ``hostname`` (small TOCTOU race, fine locally)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -91,7 +140,8 @@ class MDIEngine:
     name : str
         The MDI driver name.
     hostname : str
-        The host the engine should dial (``localhost`` in local mode).
+        The host the engine should dial: by default the loopback address
+        127.0.0.1, which needs no name lookup.
     timeout : float
         Seconds to wait for the engine to connect before giving up.
     logger : logging.Logger
@@ -108,7 +158,7 @@ class MDIEngine:
         elements,
         *,
         name="SEAMM",
-        hostname="localhost",
+        hostname=LOCAL_HOST,
         timeout=60.0,
         logger=logger,
     ):
@@ -123,10 +173,12 @@ class MDIEngine:
         self._comm = None
         self._process = None
         self._started = False
+        self._port = None  # the port of the engine's connection, to close it
 
-        # How many times to try to start the engine, and the wait (s) before the
-        # second attempt, longer for each one after
-        self.start_attempts = 3
+        # How many times to try to start the engine, the waits (s) before the
+        # attempts after the first, and a factor for them (tests make them short)
+        self.start_attempts = 4
+        self.start_retry_waits = (2.0, 10.0, 30.0)
         self.start_retry_wait = 1.0
 
         # How many times the engine has been asked to evaluate the structure.
@@ -141,11 +193,13 @@ class MDIEngine:
     def start(self):
         """Listen, launch the engine, accept its connection, send the topology.
 
-        Starting is tried up to :attr:`start_attempts` times: an engine has
+        Starting is tried up to :attr:`start_attempts` times, waiting
+        :attr:`start_retry_waits` (2, 10 and 30 s) between them: an engine has
         occasionally failed to start when engines were started one after another
         (the first command, >NATOMS, failed on a connection that had just been
-        accepted), and the next attempt, on a new port, succeeds. The error of the
-        last attempt is raised if none does.
+        accepted), and the next attempt, on a new port, succeeds; the longer waits
+        ride out a short outage of the machine's networking. The error of the last
+        attempt is raised if none does.
         """
         if self._started:
             return self
@@ -157,6 +211,7 @@ class MDIEngine:
                 self._kill_process()
                 self._process = None
                 self._comm = None
+                self._close_sockets()
                 if attempt == self.start_attempts:
                     raise RuntimeError(
                         f"The MDI engine could not be started in {attempt} "
@@ -166,11 +221,13 @@ class MDIEngine:
                     f"The MDI engine did not start (attempt {attempt} of "
                     f"{self.start_attempts}): {e}. Trying again."
                 )
-                time.sleep(self.start_retry_wait * attempt)
+                waits = self.start_retry_waits
+                time.sleep(self.start_retry_wait * waits[min(attempt, len(waits)) - 1])
 
     def _start_once(self):
         """One attempt to start the engine (see :meth:`start`)."""
         port = _free_port(self._hostname)
+        self._port = port
         mdi.MDI_Init(f"-role DRIVER -name {self._name} -method TCP -port {port}")
 
         argv = self._build_argv(self._hostname, port)
@@ -238,7 +295,16 @@ class MDIEngine:
             except Exception:
                 self._kill_process()
             self._process = None
+        self._close_sockets()
         self._started = False
+
+    def _close_sockets(self):
+        """Close the listening socket and connection of this engine (see
+        :func:`_close_sockets_on_port`)."""
+        n = _close_sockets_on_port(self._port)
+        if n:
+            self.logger.debug(f"Closed {n} socket(s) of the MDI engine on {self._port}")
+        self._port = None
 
     def _kill_process(self):
         if self._process is not None:

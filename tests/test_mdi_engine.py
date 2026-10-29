@@ -236,3 +236,89 @@ def test_fingerprints_with_garbage_after_the_message(monkeypatch):
         "energy": {"fingerprint": "sha256:x"},
         "hessian": None,
     }
+
+
+def test_local_engines_dial_the_loopback_address():
+    """Local engines get 127.0.0.1, not "localhost", whose lookup failed for minutes
+    on a Mac (2026-10-29)."""
+    seen = []
+
+    def build_argv(hostname, port):
+        seen.append(hostname)
+        return _build_argv(hostname, port)
+
+    with MDIEngine(build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        eng.set_coordinates(np.eye(3), units="bohr")
+        eng.energy()
+    assert seen == ["127.0.0.1"]
+
+
+def test_start_backs_off(monkeypatch):
+    """Between attempts the engine waits 2, 10 and 30 s (scaled by
+    start_retry_wait), riding out a short outage."""
+    from seamm_mdi import mdi_engine
+
+    waits = []
+    monkeypatch.setattr(mdi_engine.time, "sleep", lambda s: waits.append(s))
+
+    def never(hostname, port):
+        return [sys.executable, "-c", "import sys; sys.exit(3)"]
+
+    eng = MDIEngine(never, elements=[8, 1, 1], timeout=1.0)
+    assert eng.start_attempts == 4
+    with pytest.raises(RuntimeError, match="could not be started in 4 attempts"):
+        eng.start()
+    assert waits == [2.0, 10.0, 30.0]
+
+
+def _n_sockets():
+    import stat
+
+    fd_dir = "/dev/fd" if os.path.isdir("/dev/fd") else "/proc/self/fd"
+    n = 0
+    for name in os.listdir(fd_dir):
+        try:
+            if stat.S_ISSOCK(os.fstat(int(name)).st_mode):
+                n += 1
+        except (OSError, ValueError):
+            pass
+    return n
+
+
+def test_engines_do_not_leak_sockets():
+    """Each engine start opened a listening socket (MDI_Init) and an accepted
+    connection that were never closed; a job with ~100 engines then ran out of
+    descriptors on a Mac (2026-10-29). Starting and closing engines leaves none."""
+    with MDIEngine(_build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        eng.set_coordinates(np.eye(3), units="bohr")
+        eng.energy()
+    before = _n_sockets()
+    for _ in range(5):
+        with MDIEngine(_build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
+            eng.set_coordinates(np.eye(3), units="bohr")
+            eng.energy()
+    assert _n_sockets() == before
+
+
+def test_close_sockets_only_on_the_port():
+    """Only the sockets on the engine's port are closed."""
+    import socket
+
+    from seamm_mdi.mdi_engine import _close_sockets_on_port
+
+    mine = socket.socket()
+    mine.bind(("127.0.0.1", 0))
+    mine.listen()
+    other = socket.socket()
+    other.bind(("127.0.0.1", 0))
+    try:
+        assert _close_sockets_on_port(mine.getsockname()[1]) == 1
+        assert other.getsockname()[1] > 0  # still open
+        with pytest.raises(OSError):
+            mine.getsockname()
+    finally:
+        other.close()
+        try:
+            mine.close()
+        except OSError:
+            pass
