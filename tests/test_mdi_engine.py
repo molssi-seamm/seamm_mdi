@@ -189,6 +189,50 @@ def test_fingerprints_from_engine():
         assert eng.fingerprints() == {"energy": None, "hessian": None}
         eng.set_coordinates(np.zeros((3, 3)), units="bohr")
         eng.energy()
-        records = eng.fingerprints()
-        assert records["energy"]["fingerprint"] == "sha256:mock"
-        assert records["hessian"] is None
+        # Several times, as a driver asks after each structure: a receive that read
+        # past its buffer failed at random on what followed it in memory
+        for _ in range(20):
+            records = eng.fingerprints()
+            assert records["energy"]["fingerprint"] == "sha256:mock"
+            assert records["energy"]["note"] == "Å ² — not ASCII"
+            assert len(records["energy"]["files"]["orca.inp"]) == 33 * 200
+            assert records["hessian"] is None
+
+
+def test_fingerprints_with_garbage_after_the_message(monkeypatch):
+    """pymdi reads a received string as a C string, past the end of its n-byte
+    buffer; when the bytes there are not UTF-8 its own decode fails. The driver
+    receives into a buffer of its own with a NUL, so what follows never counts."""
+    import ctypes
+    import json
+    import types
+
+    from seamm_mdi import mdi_engine
+
+    text = json.dumps({"energy": {"fingerprint": "sha256:x"}, "hessian": None})
+    payload = text.encode()
+
+    def recv(count, datatype, comm, buf=None):
+        if datatype == fake.MDI_INT:
+            return len(payload)
+        if buf is None:
+            # As pymdi does: n bytes, then whatever follows in memory
+            return (payload[:count] + b"\xff\xc9 garbage").decode("utf-8")
+        ctypes.memmove(buf, payload, count)
+        # garbage after the n bytes is outside the buffer we pass, except the NUL
+        return None
+
+    fake = types.SimpleNamespace(
+        MDI_INT=1,
+        MDI_CHAR=4,
+        MDI_Send_Command=lambda command, comm: None,
+        MDI_Recv=recv,
+        MDI_Check_Command_Exists=lambda node, command, comm: True,
+    )
+    monkeypatch.setattr(mdi_engine, "mdi", fake)
+    engine = object.__new__(MDIEngine)
+    engine._comm = None
+    assert engine.fingerprints() == {
+        "energy": {"fingerprint": "sha256:x"},
+        "hessian": None,
+    }

@@ -2,6 +2,13 @@
 History
 =======
 
+2026.10.28.1 -- Bugfix: the fingerprints from an MDI engine could not be read
+    * ``MDIEngine.fingerprints()`` failed with "'utf-8' codec can't decode byte 0xff
+      ..." for real records. pymdi receives a string into a buffer of exactly its
+      length, with no terminating NUL, and then reads it as a C string, past its end
+      into whatever follows in memory. The fingerprints are now received into a
+      buffer with room for the NUL and decoded exactly.
+
 2026.10.28 -- Fingerprints of an engine's calculations
     * New ``MDIEngine.fingerprints()``: the fingerprints of the settings of the
       engine's last energy and Hessian calculations, from engines that answer the
