@@ -125,6 +125,32 @@ def _free_port(hostname=LOCAL_HOST):
         s.close()
 
 
+def complete_records(records):
+    """Engine records with their fingerprints: a record that has "files" but no
+    "fingerprint" (from an engine without seamm_util, e.g. xTB's tblite engine in
+    its own environment) gets them from
+    :func:`seamm_util.fingerprint.calculation_record`; others are unchanged."""
+    if not isinstance(records, dict):
+        return records
+    from seamm_util.fingerprint import calculation_record
+
+    out = {}
+    for kind, record in records.items():
+        if (
+            isinstance(record, dict)
+            and "fingerprint" not in record
+            and isinstance(record.get("files"), dict)
+        ):
+            record = calculation_record(
+                record.get("program", ""),
+                record.get("version", ""),
+                record["files"],
+                element_blocks=record.get("element blocks"),
+            )
+        out[kind] = record
+    return out
+
+
 class MDIEngine:
     """Drive an MDI engine for repeated energy/force evaluations.
 
@@ -422,7 +448,11 @@ class MDIEngine:
         each the record of the last energy/gradient or analytic-Hessian run (None
         until there has been one), as from
         :func:`seamm_util.fingerprint.calculation_record`. A step stores them
-        with the results with ``Node.store_calculation_record()``.
+        with the results with ``Node.store_calculation_record()``. An engine that
+        runs where seamm_util is not installed may send a record without its
+        fingerprints (program, version and the hashed files only); it is
+        completed here (:func:`complete_records`), so every code hashes the same
+        way.
         """
         if not self.supports("<FINGERPRINT"):
             return None
@@ -436,7 +466,7 @@ class MDIEngine:
         # a buffer of our own with room for the NUL, and decode exactly n bytes.
         buffer = (ctypes.c_char * (n + 1))()
         mdi.MDI_Recv(n, mdi.MDI_CHAR, self._comm, buf=buffer)
-        return json.loads(buffer.raw[:n].decode("utf-8"))
+        return complete_records(json.loads(buffer.raw[:n].decode("utf-8")))
 
     def hessian(self, units=_MDI_HESSIAN):
         """Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``
