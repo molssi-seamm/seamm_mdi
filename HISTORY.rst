@@ -2,6 +2,12 @@
 History
 =======
 
+2026.11.11 -- Fingerprints for engines that send only their settings
+    * An MDI engine that runs where SEAMM's own packages are not installed, such as
+      xTB's tblite engine in its own environment, can now send the record of its
+      settings without the fingerprint; ``MDIEngine.fingerprints`` completes the
+      record, so every code's calculations are fingerprinted the same way.
+
 2026.10.29 -- Bugfix: a long loop of engines ran out of file descriptors
     * Every engine start left two sockets open: the listener that MDI_Init opens and
       the connection to the engine, which pymdi has no call to close. A job that
