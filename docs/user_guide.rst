@@ -73,6 +73,21 @@ do), so check with ``engine.supports(command)`` first. The same check gates the
 optional analytic Hessian: ``engine.supports("<HESSIAN")`` is truthful, and
 ``engine.hessian()`` returns the (3n, 3n) matrix when it is offered.
 
+Calculation records
+-------------------
+
+An engine that answers ``<FINGERPRINT`` describes the settings of its last
+calculation, so that results can be matched to the calculation that made them.
+``engine.fingerprints()`` returns ``None`` if the engine does not give them, or
+a dictionary with ``"energy"`` and ``"hessian"``, each the record of the last
+energy/gradient or analytic-Hessian run (``None`` until there has been one), as
+from
+:func:`seamm_util.fingerprint.calculation_record`; a step stores them with its
+results with ``Node.store_calculation_record()``. An engine running where
+``seamm_util`` is not installed (xTB's tblite engine, for one) may send only the
+program, its version and the settings text; ``fingerprints()`` then adds the
+fingerprint, so every code is fingerprinted the same way.
+
 Units
 -----
 
