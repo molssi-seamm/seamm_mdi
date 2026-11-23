@@ -26,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-mdi", required=True)
     parser.add_argument("--fingerprint", action="store_true")
+    # <SPIN: "open" sends <S**2> = 0.7556, S(S+1) = 0.75; "closed" sends NaN
+    parser.add_argument("--spin", choices=("open", "closed"), default=None)
     args = parser.parse_args()
 
     mdi.MDI_Init(args.mdi)
@@ -49,6 +51,8 @@ def main():
     if args.fingerprint:
         mdi.MDI_Register_command("@DEFAULT", "<FINGERPRINT_LENGTH")
         mdi.MDI_Register_command("@DEFAULT", "<FINGERPRINT")
+    if args.spin is not None:
+        mdi.MDI_Register_command("@DEFAULT", "<SPIN")
     records = {"energy": None, "hessian": None}
 
     natoms = 0
@@ -90,6 +94,9 @@ def main():
                 mdi.MDI_Send(len(text), 1, mdi.MDI_INT, comm)
             else:
                 mdi.MDI_Send(text, len(text), mdi.MDI_CHAR, comm)
+        elif command == "<SPIN":
+            values = [0.7556, 0.75] if args.spin == "open" else [np.nan, np.nan]
+            mdi.MDI_Send(values, 2, mdi.MDI_DOUBLE, comm)
         elif command == "<FORCES":
             forces = np.full(3 * natoms, -0.5)
             mdi.MDI_Send(forces.tolist(), 3 * natoms, mdi.MDI_DOUBLE, comm)

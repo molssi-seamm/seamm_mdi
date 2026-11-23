@@ -2,7 +2,14 @@
 History
 =======
 
-2026.11.11 -- Fingerprints for engines that send only their settings
+2026.11.23 -- The spin contamination of an engine's open-shell calculations
+    * ``MDIEngine.spin()`` returns <S**2> and its ideal value S(S+1) for the engine's
+      last energy and gradient, through the engine's custom ``<SPIN`` command, so a
+      driver can store them although the engine's output stays where it runs. It is
+      None for an engine without the command, and (None, None) for a closed-shell
+      calculation.
+
+2026.11.11 --Fingerprints for engines that send only their settings
     * An MDI engine that runs where SEAMM's own packages are not installed, such as
       xTB's tblite engine in its own environment, can now send the record of its
       settings without the fingerprint; ``MDIEngine.fingerprints`` completes the

@@ -468,6 +468,25 @@ class MDIEngine:
         mdi.MDI_Recv(n, mdi.MDI_CHAR, self._comm, buf=buffer)
         return complete_records(json.loads(buffer.raw[:n].decode("utf-8")))
 
+    def spin(self):
+        """``(S2, S2_ideal)`` of the engine's energy/gradient at the current
+        geometry, or None if the engine does not give them.
+
+        Via the engine's custom ``<SPIN`` command: the expectation value <S**2> of
+        the last SCF and its ideal value S(S+1), so a driver can store the spin
+        contamination of an open-shell calculation whose output stays with the
+        engine. Both are None for a closed-shell (spin-restricted) calculation,
+        for which the engine sends NaN.
+        """
+        if not self.supports("<SPIN"):
+            return None
+        mdi.MDI_Send_Command("<SPIN", self._comm)
+        raw = mdi.MDI_Recv(2, mdi.MDI_DOUBLE, self._comm)
+        s2, ideal = (float(x) for x in np.asarray(raw, dtype=float).ravel()[:2])
+        if np.isnan(s2) or np.isnan(ideal):
+            return None, None
+        return s2, ideal
+
     def hessian(self, units=_MDI_HESSIAN):
         """Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``
         (default hartree/bohr^2), via the engine's custom ``<HESSIAN`` command.
