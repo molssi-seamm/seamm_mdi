@@ -322,3 +322,29 @@ def test_close_sockets_only_on_the_port():
             mine.close()
         except OSError:
             pass
+
+
+def test_spin_without_the_command(engine):
+    """An engine without <SPIN gives None."""
+    assert engine.spin() is None
+
+
+@pytest.mark.parametrize(
+    "kind, expected", [("open", (0.7556, 0.75)), ("closed", (None, None))]
+)
+def test_spin_from_engine(kind, expected):
+    """<S**2> and S(S+1) of an open-shell calculation; (None, None) for a closed
+    shell, where the engine sends NaN."""
+
+    def argv(hostname, port):
+        return _build_argv(hostname, port) + ["--spin", kind]
+
+    with MDIEngine(argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        assert eng.supports("<SPIN")
+        eng.set_coordinates(np.zeros((3, 3)), units="bohr")
+        eng.energy()
+        result = eng.spin()
+        if kind == "open":
+            assert result == pytest.approx(expected)
+        else:
+            assert result == expected
