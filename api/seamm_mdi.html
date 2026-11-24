@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>seamm_mdi package &#8212; SEAMM MDI 2026.11.23 documentation</title>
+    <title>seamm_mdi package &#8212; SEAMM MDI 2026.11.24 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=bd31c218"></script>
+    <script src="../_static/documentation_options.js?v=76b852d5"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,7 +54,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.11.23" />
+  <meta name="docsearch:version" content="2026.11.24" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -530,8 +530,9 @@ connects back to the driver.</p></li>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>One active engine per process (MDI keeps global state). Use as a context
-manager, or call <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEngine.start" title="seamm_mdi.mdi_engine.MDIEngine.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> / <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEngine.close" title="seamm_mdi.mdi_engine.MDIEngine.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> explicitly.</p>
+<p>Several engines can be live at once in a process: they share one MDI
+listener, each on its own communicator (see the notes on the listener). Use as
+a context manager, or call <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEngine.start" title="seamm_mdi.mdi_engine.MDIEngine.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> / <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEngine.close" title="seamm_mdi.mdi_engine.MDIEngine.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> explicitly.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.close">
 <span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.close" title="Link to this definition">#</a></dt>
@@ -662,6 +663,12 @@ its own environment) gets them from
 <code class="xref py py-func docutils literal notranslate"><span class="pre">seamm_util.fingerprint.calculation_record()</span></code>; others are unchanged.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.live_engines">
+<span class="sig-prename descclassname"><span class="pre">seamm_mdi.mdi_engine.</span></span><span class="sig-name descname"><span class="pre">live_engines</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#live_engines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.live_engines" title="Link to this definition">#</a></dt>
+<dd><p>How many MDI engines are live in this process.</p>
+</dd></dl>
+
 </section>
 <section id="module-seamm_mdi">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-seamm_mdi" title="Link to this heading">#</a></h2>
@@ -725,6 +732,7 @@ its own environment) gets them from
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.complete_records"><code class="docutils literal notranslate"><span class="pre">complete_records()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.live_engines"><code class="docutils literal notranslate"><span class="pre">live_engines()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-seamm_mdi">Module contents</a></li>
