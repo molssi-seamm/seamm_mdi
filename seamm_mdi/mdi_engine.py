@@ -22,6 +22,7 @@ import signal
 import socket
 import stat
 import subprocess
+import threading
 import time
 
 import numpy as np
@@ -115,6 +116,87 @@ def _close_sockets_on_port(port):
     return closed
 
 
+def _connections_on_port(port):
+    """The descriptors of this process's *connected* sockets whose local port is
+    ``port`` (the connections a listener on ``port`` accepted; the listener itself
+    has no peer)."""
+    if port is None:
+        return set()
+    fd_dir = "/dev/fd" if os.path.isdir("/dev/fd") else f"/proc/{os.getpid()}/fd"
+    try:
+        fds = [int(name) for name in os.listdir(fd_dir) if name.isdigit()]
+    except OSError:  # pragma: no cover
+        return set()
+    found = set()
+    for fd in fds:
+        try:
+            if not stat.S_ISSOCK(os.fstat(fd).st_mode):
+                continue
+            s = socket.socket(fileno=fd)
+        except OSError:
+            continue
+        try:
+            address = s.getsockname()
+            s.getpeername()  # raises for the listener
+        except OSError:
+            address = None
+        finally:
+            s.detach()
+        if isinstance(address, tuple) and len(address) >= 2 and address[1] == port:
+            found.add(fd)
+    return found
+
+
+# --------------------------------------------------------------------------- #
+# The process's MDI listener
+#
+# MDI keeps the driver's state per process. Calling MDI_Init once per engine, as
+# seamm_mdi used to, numbered every engine's communicator 1, so with two engines
+# live the first one's commands went to the second (an optimizer's cheap-level
+# engine answered the expensive level's energies; Design, 2026-11-24). Now there
+# is one listener (one MDI_Init) while any engine is live: each engine dials it,
+# is accepted on its own communicator, and is started one at a time under the
+# lock so that each communicator belongs to the engine just launched. When the
+# last engine closes, the listener is closed too, so the next start initializes
+# afresh on a new port, as before, and a long loop of engines leaks no sockets.
+# --------------------------------------------------------------------------- #
+_LOCK = threading.RLock()
+_LISTENER = {"port": None, "hostname": None}
+_LIVE = set()
+
+
+def _listener_port(hostname, name):
+    """The port of the process's MDI listener, initializing it if there is none."""
+    with _LOCK:
+        if _LISTENER["port"] is not None and _LISTENER["hostname"] != hostname:
+            if _LIVE:
+                raise RuntimeError(
+                    f"An MDI listener for {_LISTENER['hostname']} is in use; engines "
+                    f"for {hostname} cannot be started while it has live engines."
+                )
+            _reset_listener()
+        if _LISTENER["port"] is None:
+            port = _free_port(hostname)
+            mdi.MDI_Init(f"-role DRIVER -name {name} -method TCP -port {port}")
+            _LISTENER.update(port=port, hostname=hostname)
+        return _LISTENER["port"]
+
+
+def _reset_listener():
+    """Close the listener when no engine is live (the next start initializes MDI
+    again, on a new port)."""
+    with _LOCK:
+        if _LIVE or _LISTENER["port"] is None:
+            return
+        _close_sockets_on_port(_LISTENER["port"])
+        _LISTENER.update(port=None, hostname=None)
+
+
+def live_engines():
+    """How many MDI engines are live in this process."""
+    return len(_LIVE)
+
+
 def _free_port(hostname=LOCAL_HOST):
     """Find a free TCP port on ``hostname`` (small TOCTOU race, fine locally)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -174,8 +256,9 @@ class MDIEngine:
 
     Notes
     -----
-    One active engine per process (MDI keeps global state). Use as a context
-    manager, or call :meth:`start` / :meth:`close` explicitly.
+    Several engines can be live at once in a process: they share one MDI
+    listener, each on its own communicator (see the notes on the listener). Use as
+    a context manager, or call :meth:`start` / :meth:`close` explicitly.
     """
 
     def __init__(
@@ -199,7 +282,8 @@ class MDIEngine:
         self._comm = None
         self._process = None
         self._started = False
-        self._port = None  # the port of the engine's connection, to close it
+        self._port = None  # the listener's port, which the engine dialled
+        self._fds = set()  # this engine's own connection(s), to close them
 
         # How many times to try to start the engine, the waits (s) before the
         # attempts after the first, and a factor for them (tests make them short)
@@ -252,23 +336,28 @@ class MDIEngine:
 
     def _start_once(self):
         """One attempt to start the engine (see :meth:`start`)."""
-        port = _free_port(self._hostname)
-        self._port = port
-        mdi.MDI_Init(f"-role DRIVER -name {self._name} -method TCP -port {port}")
+        # One engine at a time: the communicator accepted next belongs to the
+        # engine launched now (see the listener notes above)
+        with _LOCK:
+            port = _listener_port(self._hostname, self._name)
+            self._port = port
 
-        argv = self._build_argv(self._hostname, port)
-        # An engine's argv may carry a leading ``VAR=value`` env-assignment
-        # prefix (e.g. ``OMP_NUM_THREADS=1``), which only a shell would honor;
-        # apply it via ``env=`` since we launch without a shell.
-        argv, env = _split_env_prefix(argv)
-        self.logger.debug(f"Launching MDI engine: {argv}")
-        self._process = subprocess.Popen(argv, env=env)
+            argv = self._build_argv(self._hostname, port)
+            # An engine's argv may carry a leading ``VAR=value`` env-assignment
+            # prefix (e.g. ``OMP_NUM_THREADS=1``), which only a shell would honor;
+            # apply it via ``env=`` since we launch without a shell.
+            argv, env = _split_env_prefix(argv)
+            self.logger.debug(f"Launching MDI engine: {argv}")
+            before = _connections_on_port(port)
+            self._process = subprocess.Popen(argv, env=env)
 
-        try:
-            self._comm = self._accept()
-        except BaseException:
-            self._kill_process()
-            raise
+            try:
+                self._comm = self._accept()
+            except BaseException:
+                self._kill_process()
+                raise
+            self._fds = _connections_on_port(port) - before
+            _LIVE.add(self)
 
         # Fixed topology for the session.
         mdi.MDI_Send_Command(">NATOMS", self._comm)
@@ -325,9 +414,21 @@ class MDIEngine:
         self._started = False
 
     def _close_sockets(self):
-        """Close the listening socket and connection of this engine (see
-        :func:`_close_sockets_on_port`)."""
-        n = _close_sockets_on_port(self._port)
+        """Close this engine's connection; and, when no other engine is live, the
+        listener (so the next start initializes MDI afresh, and a long loop of
+        engines leaks no descriptors)."""
+        with _LOCK:
+            _LIVE.discard(self)
+            n = 0
+            for fd in self._fds:
+                try:
+                    os.close(fd)
+                    n += 1
+                except OSError:
+                    pass
+            self._fds = set()
+            if not _LIVE:
+                _reset_listener()
         if n:
             self.logger.debug(f"Closed {n} socket(s) of the MDI engine on {self._port}")
         self._port = None

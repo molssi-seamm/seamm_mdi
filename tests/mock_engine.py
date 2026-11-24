@@ -26,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-mdi", required=True)
     parser.add_argument("--fingerprint", action="store_true")
+    # a factor on the energy, to tell engines apart when several are live
+    parser.add_argument("--scale", type=float, default=1.0)
     # <SPIN: "open" sends <S**2> = 0.7556, S(S+1) = 0.75; "closed" sends NaN
     parser.add_argument("--spin", choices=("open", "closed"), default=None)
     args = parser.parse_args()
@@ -80,7 +82,9 @@ def main():
         elif command == "SCF":
             pass
         elif command == "<ENERGY":
-            mdi.MDI_Send(0.5 * float(coords.sum()), 1, mdi.MDI_DOUBLE, comm)
+            mdi.MDI_Send(
+                args.scale * 0.5 * float(coords.sum()), 1, mdi.MDI_DOUBLE, comm
+            )
             # A record about as long as a real one, with text that has to be escaped
             records["energy"] = {
                 "program": "MOCK",
