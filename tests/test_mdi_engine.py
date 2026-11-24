@@ -348,3 +348,63 @@ def test_spin_from_engine(kind, expected):
             assert result == pytest.approx(expected)
         else:
             assert result == expected
+
+
+def _scaled(scale):
+    def build_argv(hostname, port):
+        return _build_argv(hostname, port) + ["--scale", str(scale)]
+
+    return build_argv
+
+
+def test_two_live_engines_answer_on_their_own_communicators():
+    """Two engines live at once each answer their own calls. MDI_Init per engine
+    numbered both communicators 1, so the first engine's calls went to the second
+    (Design 2026-11-24); one listener gives each its own."""
+    from seamm_mdi import mdi_engine
+
+    x = np.eye(3)
+    with MDIEngine(_scaled(1.0), elements=[8, 1, 1], timeout=30.0) as a:
+        with MDIEngine(_scaled(10.0), elements=[8, 1, 1], timeout=30.0) as b:
+            assert a._comm != b._comm
+            assert mdi_engine.live_engines() == 2
+            for _ in range(3):  # interleaved
+                a.set_coordinates(x, units="bohr")
+                b.set_coordinates(2 * x, units="bohr")
+                assert a.energy() == pytest.approx(1.5)
+                assert b.energy() == pytest.approx(10.0 * 3.0)
+        # the second closed; the first still answers
+        a.set_coordinates(x, units="bohr")
+        assert a.energy() == pytest.approx(1.5)
+        assert mdi_engine.live_engines() == 1
+    assert mdi_engine.live_engines() == 0
+
+
+def test_an_engine_started_after_another_closed_works():
+    """A new engine while one is live, after a third has come and gone."""
+    x = np.eye(3)
+    with MDIEngine(_scaled(1.0), elements=[8, 1, 1], timeout=30.0) as a:
+        with MDIEngine(_scaled(2.0), elements=[8, 1, 1], timeout=30.0) as b:
+            b.set_coordinates(x, units="bohr")
+            assert b.energy() == pytest.approx(3.0)
+        with MDIEngine(_scaled(3.0), elements=[8, 1, 1], timeout=30.0) as c:
+            c.set_coordinates(x, units="bohr")
+            a.set_coordinates(x, units="bohr")
+            assert c.energy() == pytest.approx(4.5)
+            assert a.energy() == pytest.approx(1.5)
+
+
+def test_overlapping_engines_do_not_leak_sockets():
+    """With engines nested, closing all of them leaves no sockets behind."""
+    with MDIEngine(_build_argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        eng.set_coordinates(np.eye(3), units="bohr")
+        eng.energy()
+    before = _n_sockets()
+    for _ in range(3):
+        with MDIEngine(_scaled(1.0), elements=[8, 1, 1], timeout=30.0) as a:
+            with MDIEngine(_scaled(2.0), elements=[8, 1, 1], timeout=30.0) as b:
+                a.set_coordinates(np.eye(3), units="bohr")
+                b.set_coordinates(np.eye(3), units="bohr")
+                a.energy()
+                b.energy()
+    assert _n_sockets() == before
