@@ -2,6 +2,15 @@
 History
 =======
 
+2026.11.24 -- Bugfix: several MDI engines can be live at once
+    * Calling MDI_Init for every engine gave every engine's communicator the same
+      number, so with two engines live (e.g. an optimizer's cheap-level engine next to
+      the expensive one) the first engine's commands were answered silently by the
+      second. Now a process has one MDI listener while any engine is live; each engine
+      is accepted on its own communicator, engines are started one at a time, and
+      closing one closes only its own connection. When the last engine closes, the
+      listener is closed too, so long loops of engines still leak no sockets.
+
 2026.11.23 -- The spin contamination of an engine's open-shell calculations
     * ``MDIEngine.spin()`` returns <S**2> and its ideal value S(S+1) for the engine's
       last energy and gradient, through the engine's custom ``<SPIN`` command, so a
