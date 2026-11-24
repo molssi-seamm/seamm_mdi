@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.11.11 documentation</title>
+    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.11.23 documentation</title>
   
   
   
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=83e1bca7"></script>
+    <script src="../../_static/documentation_options.js?v=bd31c218"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,7 +52,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.11.11" />
+  <meta name="docsearch:version" content="2026.11.23" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -949,6 +949,28 @@
         <span class="n">buffer</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_char</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))()</span>
         <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Recv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_CHAR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">,</span> <span class="n">buf</span><span class="o">=</span><span class="n">buffer</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">complete_records</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">buffer</span><span class="o">.</span><span class="n">raw</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="MDIEngine.spin">
+<a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.spin">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">spin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""``(S2, S2_ideal)`` of the engine's energy/gradient at the current</span>
+<span class="sd">        geometry, or None if the engine does not give them.</span>
+
+<span class="sd">        Via the engine's custom ``&lt;SPIN`` command: the expectation value &lt;S**2&gt; of</span>
+<span class="sd">        the last SCF and its ideal value S(S+1), so a driver can store the spin</span>
+<span class="sd">        contamination of an open-shell calculation whose output stays with the</span>
+<span class="sd">        engine. Both are None for a closed-shell (spin-restricted) calculation,</span>
+<span class="sd">        for which the engine sends NaN.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">supports</span><span class="p">(</span><span class="s2">"&lt;SPIN"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="s2">"&lt;SPIN"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Recv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_DOUBLE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="n">s2</span><span class="p">,</span> <span class="n">ideal</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">ideal</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">s2</span><span class="p">,</span> <span class="n">ideal</span></div>
 
 
 <div class="viewcode-block" id="MDIEngine.hessian">

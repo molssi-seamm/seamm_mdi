@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>seamm_mdi package &#8212; SEAMM MDI 2026.11.11 documentation</title>
+    <title>seamm_mdi package &#8212; SEAMM MDI 2026.11.23 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=83e1bca7"></script>
+    <script src="../_static/documentation_options.js?v=bd31c218"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,7 +54,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.11.11" />
+  <meta name="docsearch:version" content="2026.11.23" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -609,6 +609,18 @@ engine treats the system as fully periodic once a cell is set.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.spin">
+<span class="sig-name descname"><span class="pre">spin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.spin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.spin" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">(S2,</span> <span class="pre">S2_ideal)</span></code> of the engine’s energy/gradient at the current
+geometry, or None if the engine does not give them.</p>
+<p>Via the engine’s custom <code class="docutils literal notranslate"><span class="pre">&lt;SPIN</span></code> command: the expectation value &lt;S**2&gt; of
+the last SCF and its ideal value S(S+1), so a driver can store the spin
+contamination of an open-shell calculation whose output stays with the
+engine. Both are None for a closed-shell (spin-restricted) calculation,
+for which the engine sends NaN.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.start" title="Link to this definition">#</a></dt>
 <dd><p>Listen, launch the engine, accept its connection, send the topology.</p>
@@ -706,6 +718,7 @@ its own environment) gets them from
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.hessian"><code class="docutils literal notranslate"><span class="pre">MDIEngine.hessian()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.set_cell"><code class="docutils literal notranslate"><span class="pre">MDIEngine.set_cell()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.set_coordinates"><code class="docutils literal notranslate"><span class="pre">MDIEngine.set_coordinates()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.spin"><code class="docutils literal notranslate"><span class="pre">MDIEngine.spin()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.start"><code class="docutils literal notranslate"><span class="pre">MDIEngine.start()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.stress"><code class="docutils literal notranslate"><span class="pre">MDIEngine.stress()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.supports"><code class="docutils literal notranslate"><span class="pre">MDIEngine.supports()</span></code></a></li>
