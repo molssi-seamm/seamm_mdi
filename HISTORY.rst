@@ -2,6 +2,15 @@
 History
 =======
 
+2026.11.26 -- The reference guess and a tight SCF for finite differences
+    * MDIEngine.save_guess() and restore_guess() keep the orbitals of the engine's last
+      SCF and start a later SCF from them (custom SAVE_GUESS / RESTORE_GUESS; ORCA's
+      engine first), so every point of a finite difference can start from the same
+      reference orbitals rather than from the previous point's.
+    * MDIEngine.tight_scf() tightens the engine's SCF for finite differences and puts
+      it back (custom TIGHT_SCF / NORMAL_SCF).
+    * Each returns False when the engine does not have the command.
+
 2026.11.24 -- Bugfix: several MDI engines can be live at once
     * Calling MDI_Init for every engine gave every engine's communicator the same
       number, so with two engines live (e.g. an optimizer's cheap-level engine next to

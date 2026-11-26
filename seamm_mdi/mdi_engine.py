@@ -588,6 +588,37 @@ class MDIEngine:
             return None, None
         return s2, ideal
 
+    def _optional(self, command):
+        """Send an optional, data-less custom ``command`` if the engine has it;
+        whether it did."""
+        if not self.supports(command):
+            return False
+        mdi.MDI_Send_Command(command, self._comm)
+        return True
+
+    def save_guess(self):
+        """Keep the orbitals of the engine's last SCF as its reference guess
+        (custom ``SAVE_GUESS``; ORCA's engine first). False if the engine cannot.
+
+        With :meth:`restore_guess` before each displaced structure, every point of
+        a finite difference starts its SCF from the same reference orbitals, not
+        from the previous point's: otherwise the converged state, and so the
+        finite difference, depends on the path (the warm-engine Hessian of
+        4-hydroxy-TEMPO, SEAMM job 6074, 2026-11-26)."""
+        return self._optional("SAVE_GUESS")
+
+    def restore_guess(self):
+        """Start the next SCF from the orbitals saved by :meth:`save_guess`
+        (custom ``RESTORE_GUESS``). False if the engine cannot."""
+        return self._optional("RESTORE_GUESS")
+
+    def tight_scf(self, tight=True):
+        """Tighten the engine's SCF for finite differences, or go back to its own
+        settings (custom ``TIGHT_SCF`` / ``NORMAL_SCF``; for ORCA, VeryTightSCF and
+        exact exchange, as ``precision="tight"`` gives a batch calculation). The
+        next energy or forces are computed again. False if the engine cannot."""
+        return self._optional("TIGHT_SCF" if tight else "NORMAL_SCF")
+
     def hessian(self, units=_MDI_HESSIAN):
         """Return the analytic Cartesian Hessian as a (3n, 3n) array in ``units``
         (default hartree/bohr^2), via the engine's custom ``<HESSIAN`` command.
