@@ -408,3 +408,29 @@ def test_overlapping_engines_do_not_leak_sockets():
                 a.energy()
                 b.energy()
     assert _n_sockets() == before
+
+
+def test_guess_and_precision_commands():
+    """save_guess, restore_guess and tight_scf reach an engine that has them."""
+
+    def argv(hostname, port):
+        return _build_argv(hostname, port) + ["--guess"]
+
+    xyz = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
+    with MDIEngine(argv, elements=[8, 1, 1], timeout=30.0) as eng:
+        eng.set_coordinates(xyz, units="bohr")
+        e0 = eng.energy(units="hartree")
+        assert eng.save_guess() is True
+        assert eng.restore_guess() is True
+        assert eng.energy(units="hartree") == pytest.approx(e0 + 10.0)
+        assert eng.tight_scf() is True
+        assert eng.energy(units="hartree") == pytest.approx(e0 + 1010.0)
+        assert eng.tight_scf(False) is True
+        assert eng.energy(units="hartree") == pytest.approx(e0 + 10.0)
+
+
+def test_guess_commands_are_optional(engine):
+    """An engine without them is left alone, and the driver is told."""
+    assert engine.save_guess() is False
+    assert engine.restore_guess() is False
+    assert engine.tight_scf() is False

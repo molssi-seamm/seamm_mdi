@@ -30,6 +30,9 @@ def main():
     parser.add_argument("--scale", type=float, default=1.0)
     # <SPIN: "open" sends <S**2> = 0.7556, S(S+1) = 0.75; "closed" sends NaN
     parser.add_argument("--spin", choices=("open", "closed"), default=None)
+    # SAVE_GUESS / RESTORE_GUESS / TIGHT_SCF / NORMAL_SCF; their effect shows in
+    # the energy: +1000 while tight, +10 per RESTORE_GUESS since the last SAVE_GUESS
+    parser.add_argument("--guess", action="store_true")
     args = parser.parse_args()
 
     mdi.MDI_Init(args.mdi)
@@ -55,6 +58,11 @@ def main():
         mdi.MDI_Register_command("@DEFAULT", "<FINGERPRINT")
     if args.spin is not None:
         mdi.MDI_Register_command("@DEFAULT", "<SPIN")
+    if args.guess:
+        for command in ("SAVE_GUESS", "RESTORE_GUESS", "TIGHT_SCF", "NORMAL_SCF"):
+            mdi.MDI_Register_command("@DEFAULT", command)
+    tight = False
+    restores = 0
     records = {"energy": None, "hessian": None}
 
     natoms = 0
@@ -82,9 +90,9 @@ def main():
         elif command == "SCF":
             pass
         elif command == "<ENERGY":
-            mdi.MDI_Send(
-                args.scale * 0.5 * float(coords.sum()), 1, mdi.MDI_DOUBLE, comm
-            )
+            energy = args.scale * 0.5 * float(coords.sum())
+            energy += (1000.0 if tight else 0.0) + 10.0 * restores
+            mdi.MDI_Send(energy, 1, mdi.MDI_DOUBLE, comm)
             # A record about as long as a real one, with text that has to be escaped
             records["energy"] = {
                 "program": "MOCK",
@@ -104,6 +112,12 @@ def main():
         elif command == "<FORCES":
             forces = np.full(3 * natoms, -0.5)
             mdi.MDI_Send(forces.tolist(), 3 * natoms, mdi.MDI_DOUBLE, comm)
+        elif command == "SAVE_GUESS":
+            restores = 0
+        elif command == "RESTORE_GUESS":
+            restores += 1
+        elif command in ("TIGHT_SCF", "NORMAL_SCF"):
+            tight = command == "TIGHT_SCF"
         elif command == "EXIT":
             break
 
