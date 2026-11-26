@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>seamm_mdi package &#8212; SEAMM MDI 2026.11.24 documentation</title>
+    <title>seamm_mdi package &#8212; SEAMM MDI 2026.11.26 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=76b852d5"></script>
+    <script src="../_static/documentation_options.js?v=e5385ca6"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,7 +54,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.11.24" />
+  <meta name="docsearch:version" content="2026.11.26" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -578,6 +578,25 @@ way.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.restore_guess">
+<span class="sig-name descname"><span class="pre">restore_guess</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.restore_guess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.restore_guess" title="Link to this definition">#</a></dt>
+<dd><p>Start the next SCF from the orbitals saved by <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEngine.save_guess" title="seamm_mdi.mdi_engine.MDIEngine.save_guess"><code class="xref py py-meth docutils literal notranslate"><span class="pre">save_guess()</span></code></a>
+(custom <code class="docutils literal notranslate"><span class="pre">RESTORE_GUESS</span></code>). False if the engine cannot.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.save_guess">
+<span class="sig-name descname"><span class="pre">save_guess</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.save_guess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.save_guess" title="Link to this definition">#</a></dt>
+<dd><p>Keep the orbitals of the engine’s last SCF as its reference guess
+(custom <code class="docutils literal notranslate"><span class="pre">SAVE_GUESS</span></code>; ORCA’s engine first). False if the engine cannot.</p>
+<p>With <a class="reference internal" href="#seamm_mdi.mdi_engine.MDIEngine.restore_guess" title="seamm_mdi.mdi_engine.MDIEngine.restore_guess"><code class="xref py py-meth docutils literal notranslate"><span class="pre">restore_guess()</span></code></a> before each displaced structure, every point of
+a finite difference starts its SCF from the same reference orbitals, not
+from the previous point’s: otherwise the converged state, and so the
+finite difference, depends on the path (the warm-engine Hessian of
+4-hydroxy-TEMPO, SEAMM job 6074, 2026-11-26).</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.set_cell">
 <span class="sig-name descname"><span class="pre">set_cell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bohr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.set_cell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.set_cell" title="Link to this definition">#</a></dt>
 <dd><p>Send the periodic cell (lattice) vectors to the engine (<code class="docutils literal notranslate"><span class="pre">&gt;CELL</span></code>).</p>
@@ -652,6 +671,15 @@ being told in advance – e.g. use the analytic Hessian if the engine
 offers one, else finite-difference the forces.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="seamm_mdi.mdi_engine.MDIEngine.tight_scf">
+<span class="sig-name descname"><span class="pre">tight_scf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/seamm_mdi/mdi_engine.html#MDIEngine.tight_scf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#seamm_mdi.mdi_engine.MDIEngine.tight_scf" title="Link to this definition">#</a></dt>
+<dd><p>Tighten the engine’s SCF for finite differences, or go back to its own
+settings (custom <code class="docutils literal notranslate"><span class="pre">TIGHT_SCF</span></code> / <code class="docutils literal notranslate"><span class="pre">NORMAL_SCF</span></code>; for ORCA, VeryTightSCF and
+exact exchange, as <code class="docutils literal notranslate"><span class="pre">precision=&quot;tight&quot;</span></code> gives a batch calculation). The
+next energy or forces are computed again. False if the engine cannot.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -723,12 +751,15 @@ its own environment) gets them from
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.fingerprints"><code class="docutils literal notranslate"><span class="pre">MDIEngine.fingerprints()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.forces"><code class="docutils literal notranslate"><span class="pre">MDIEngine.forces()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.hessian"><code class="docutils literal notranslate"><span class="pre">MDIEngine.hessian()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.restore_guess"><code class="docutils literal notranslate"><span class="pre">MDIEngine.restore_guess()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.save_guess"><code class="docutils literal notranslate"><span class="pre">MDIEngine.save_guess()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.set_cell"><code class="docutils literal notranslate"><span class="pre">MDIEngine.set_cell()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.set_coordinates"><code class="docutils literal notranslate"><span class="pre">MDIEngine.set_coordinates()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.spin"><code class="docutils literal notranslate"><span class="pre">MDIEngine.spin()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.start"><code class="docutils literal notranslate"><span class="pre">MDIEngine.start()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.stress"><code class="docutils literal notranslate"><span class="pre">MDIEngine.stress()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.supports"><code class="docutils literal notranslate"><span class="pre">MDIEngine.supports()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.MDIEngine.tight_scf"><code class="docutils literal notranslate"><span class="pre">MDIEngine.tight_scf()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#seamm_mdi.mdi_engine.complete_records"><code class="docutils literal notranslate"><span class="pre">complete_records()</span></code></a></li>

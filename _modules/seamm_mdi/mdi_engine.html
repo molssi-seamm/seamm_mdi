@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.11.24 documentation</title>
+    <title>seamm_mdi.mdi_engine &#8212; SEAMM MDI 2026.11.26 documentation</title>
   
   
   
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=76b852d5"></script>
+    <script src="../../_static/documentation_options.js?v=e5385ca6"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,7 +52,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2026.11.24" />
+  <meta name="docsearch:version" content="2026.11.26" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1075,6 +1075,46 @@
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">ideal</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">s2</span><span class="p">,</span> <span class="n">ideal</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_optional</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Send an optional, data-less custom ``command`` if the engine has it;</span>
+<span class="sd">        whether it did."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">supports</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">mdi</span><span class="o">.</span><span class="n">MDI_Send_Command</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comm</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="MDIEngine.save_guess">
+<a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.save_guess">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_guess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Keep the orbitals of the engine's last SCF as its reference guess</span>
+<span class="sd">        (custom ``SAVE_GUESS``; ORCA's engine first). False if the engine cannot.</span>
+
+<span class="sd">        With :meth:`restore_guess` before each displaced structure, every point of</span>
+<span class="sd">        a finite difference starts its SCF from the same reference orbitals, not</span>
+<span class="sd">        from the previous point's: otherwise the converged state, and so the</span>
+<span class="sd">        finite difference, depends on the path (the warm-engine Hessian of</span>
+<span class="sd">        4-hydroxy-TEMPO, SEAMM job 6074, 2026-11-26)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optional</span><span class="p">(</span><span class="s2">"SAVE_GUESS"</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MDIEngine.restore_guess">
+<a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.restore_guess">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore_guess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Start the next SCF from the orbitals saved by :meth:`save_guess`</span>
+<span class="sd">        (custom ``RESTORE_GUESS``). False if the engine cannot."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optional</span><span class="p">(</span><span class="s2">"RESTORE_GUESS"</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MDIEngine.tight_scf">
+<a class="viewcode-back" href="../../api/seamm_mdi.html#seamm_mdi.mdi_engine.MDIEngine.tight_scf">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tight_scf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tight</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Tighten the engine's SCF for finite differences, or go back to its own</span>
+<span class="sd">        settings (custom ``TIGHT_SCF`` / ``NORMAL_SCF``; for ORCA, VeryTightSCF and</span>
+<span class="sd">        exact exchange, as ``precision="tight"`` gives a batch calculation). The</span>
+<span class="sd">        next energy or forces are computed again. False if the engine cannot."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optional</span><span class="p">(</span><span class="s2">"TIGHT_SCF"</span> <span class="k">if</span> <span class="n">tight</span> <span class="k">else</span> <span class="s2">"NORMAL_SCF"</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MDIEngine.hessian">
